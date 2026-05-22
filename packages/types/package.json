@@ -1,0 +1,14 @@
+{
+  "name": "@kajai/types",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

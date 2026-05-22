@@ -1,0 +1,29 @@
+{
+  "name": "kajai",
+  "private": true,
+  "version": "0.0.1",
+  "description": "KajAI – AI-powered nutrition & fitness tracker for the Hungarian market",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "db:migrate": "pnpm --filter @kajai/db migrate:dev",
+    "db:generate": "pnpm --filter @kajai/db generate",
+    "db:studio": "pnpm --filter @kajai/db studio",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

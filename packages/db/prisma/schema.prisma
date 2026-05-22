@@ -1,0 +1,336 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  GUEST
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum GoalType {
+  WEIGHT_LOSS
+  MUSCLE_GAIN
+  MAINTENANCE
+  RECOMPOSITION
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHTLY_ACTIVE
+  MODERATELY_ACTIVE
+  VERY_ACTIVE
+  EXTRA_ACTIVE
+}
+
+enum FoodItemType {
+  BASIC       // generic ingredient (e.g. chicken breast, rice)
+  PRODUCT     // branded commercial product with EAN barcode
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum FavoriteType {
+  RECIPE
+  FOOD
+  PRODUCT
+}
+
+// ─── User & Profile ───────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile          UserProfile?
+  mealLogs         MealLog[]
+  weightLogs       WeightLog[]
+  activityLogs     ActivityLog[]
+  inventoryItems   InventoryItem[]
+  favorites        Favorite[]
+  recipes          Recipe[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  gender        String?
+  dateOfBirth   DateTime?
+  heightCm      Float?
+  weightKg      Float?
+  bodyFatPct    Float?
+  activityLevel ActivityLevel @default(SEDENTARY)
+  goalType      GoalType      @default(MAINTENANCE)
+
+  // Calculated & stored for performance
+  tdeeKcal      Float?
+  dailyKcal     Float?
+  proteinG      Float?
+  carbsG        Float?
+  fatG          Float?
+
+  updatedAt     DateTime      @updatedAt
+
+  @@map("user_profiles")
+}
+
+// ─── Food Database ────────────────────────────────────────────────────────────
+
+model FoodItem {
+  id          String       @id @default(cuid())
+  name        String
+  type        FoodItemType @default(BASIC)
+  brand       String?
+  eanBarcode  String?      @unique
+  imageUrl    String?
+  category    String?
+  packageSize Float?
+  packageUnit String?
+
+  isVerified  Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  nutrition            Nutrition?
+  allergens            Allergen?
+  productAvailability  ProductAvailability[]
+  recipeIngredients    RecipeIngredient[]
+  mealLogs             MealLog[]
+  inventoryItems       InventoryItem[]
+  favorites            Favorite[]
+
+  @@index([name])
+  @@index([eanBarcode])
+  @@map("food_items")
+}
+
+model Nutrition {
+  id             String   @id @default(cuid())
+  foodItemId     String   @unique
+  foodItem       FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  // Per 100g
+  energyKcal     Float
+  protein        Float
+  carbs          Float
+  sugar          Float?
+  fat            Float
+  saturatedFat   Float?
+  fiber          Float?
+  salt           Float?
+
+  updatedAt      DateTime @updatedAt
+
+  @@map("nutrition")
+}
+
+model Allergen {
+  id          String   @id @default(cuid())
+  foodItemId  String   @unique
+  foodItem    FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  gluten      Boolean  @default(false)
+  milk        Boolean  @default(false)
+  egg         Boolean  @default(false)
+  soy         Boolean  @default(false)
+  nuts        Boolean  @default(false)
+  peanuts     Boolean  @default(false)
+  fish        Boolean  @default(false)
+  shellfish   Boolean  @default(false)
+  sesame      Boolean  @default(false)
+  celery      Boolean  @default(false)
+  mustard     Boolean  @default(false)
+  lupin       Boolean  @default(false)
+
+  @@map("allergens")
+}
+
+// ─── Recipes ─────────────────────────────────────────────────────────────────
+
+model Recipe {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  steps        String[] // Ordered list of preparation steps
+  servings     Int      @default(1)
+  prepTimeMins Int?
+  imageUrl     String?
+  isPublic     Boolean  @default(false)
+
+  ownerId      String
+  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ingredients  RecipeIngredient[] @relation("RecipeIngredients")
+  usedIn       RecipeIngredient[] @relation("ChildRecipe")
+  mealLogs     MealLog[]
+  favorites    Favorite[]
+
+  @@index([name])
+  @@index([ownerId])
+  @@map("recipes")
+}
+
+// Supports nested recipes: an ingredient can be a FoodItem OR another Recipe
+model RecipeIngredient {
+  id            String    @id @default(cuid())
+  recipeId      String
+  recipe        Recipe    @relation("RecipeIngredients", fields: [recipeId], references: [id], onDelete: Cascade)
+
+  // Exactly one of these must be set
+  foodItemId    String?
+  foodItem      FoodItem? @relation(fields: [foodItemId], references: [id])
+  childRecipeId String?
+  childRecipe   Recipe?   @relation("ChildRecipe", fields: [childRecipeId], references: [id])
+
+  amount        Float
+  unit          String    // g, ml, db, evőkanál, …
+
+  @@map("recipe_ingredients")
+}
+
+// ─── Meal Logging ─────────────────────────────────────────────────────────────
+
+model MealLog {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date       DateTime  @db.Date
+  mealType   MealType
+
+  // Exactly one of these must be set
+  foodItemId String?
+  foodItem   FoodItem? @relation(fields: [foodItemId], references: [id])
+  recipeId   String?
+  recipe     Recipe?   @relation(fields: [recipeId], references: [id])
+
+  amount     Float
+  unit       String    @default("g")
+
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, date])
+  @@map("meal_logs")
+}
+
+// ─── Stores & Pricing ────────────────────────────────────────────────────────
+
+model Store {
+  id       String @id @default(cuid())
+  name     String @unique // Lidl, Aldi, Auchan, Interspar, Penny, …
+
+  products ProductAvailability[]
+
+  @@map("stores")
+}
+
+model ProductAvailability {
+  id             String   @id @default(cuid())
+  foodItemId     String
+  foodItem       FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  storeId        String
+  store          Store    @relation(fields: [storeId], references: [id])
+
+  price          Float?
+  unitPrice      Float?   // price per 100g/100ml
+  priceUpdatedAt DateTime?
+  isAvailable    Boolean  @default(true)
+
+  @@unique([foodItemId, storeId])
+  @@map("product_availability")
+}
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+model InventoryItem {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodItemId String
+  foodItem   FoodItem  @relation(fields: [foodItemId], references: [id])
+
+  quantity   Float
+  unit       String
+  expiryDate DateTime?
+
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([userId, foodItemId])
+  @@map("inventory_items")
+}
+
+// ─── Favorites ────────────────────────────────────────────────────────────────
+
+model Favorite {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        FavoriteType
+
+  recipeId    String?
+  recipe      Recipe?      @relation(fields: [recipeId], references: [id])
+  foodItemId  String?
+  foodItem    FoodItem?    @relation(fields: [foodItemId], references: [id])
+
+  createdAt   DateTime     @default(now())
+
+  @@unique([userId, type, recipeId, foodItemId])
+  @@map("favorites")
+}
+
+// ─── Health Tracking ──────────────────────────────────────────────────────────
+
+model WeightLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date        DateTime @db.Date
+  weightKg    Float
+  bodyFatPct  Float?
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@map("weight_logs")
+}
+
+model ActivityLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date           DateTime @db.Date
+  source         String   // apple_health, google_fit, manual
+  caloriesBurned Float?
+  steps          Int?
+  workouts       Json?    // flexible structure per source
+
+  @@unique([userId, date, source])
+  @@index([userId])
+  @@map("activity_logs")
+}
