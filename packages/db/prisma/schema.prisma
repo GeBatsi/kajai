@@ -32,8 +32,8 @@ enum ActivityLevel {
 }
 
 enum FoodItemType {
-  BASIC       // generic ingredient (e.g. chicken breast, rice)
-  PRODUCT     // branded commercial product with EAN barcode
+  BASIC // generic ingredient (e.g. chicken breast, rice)
+  PRODUCT // branded commercial product with EAN barcode
 }
 
 enum MealType {
@@ -60,21 +60,21 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  profile          UserProfile?
-  mealLogs         MealLog[]
-  weightLogs       WeightLog[]
-  activityLogs     ActivityLog[]
-  inventoryItems   InventoryItem[]
-  favorites        Favorite[]
-  recipes          Recipe[]
+  profile        UserProfile?
+  mealLogs       MealLog[]
+  weightLogs     WeightLog[]
+  activityLogs   ActivityLog[]
+  inventoryItems InventoryItem[]
+  favorites      Favorite[]
+  recipes        Recipe[]
 
   @@map("users")
 }
 
 model UserProfile {
-  id            String        @id @default(cuid())
-  userId        String        @unique
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   gender        String?
   dateOfBirth   DateTime?
@@ -85,13 +85,13 @@ model UserProfile {
   goalType      GoalType      @default(MAINTENANCE)
 
   // Calculated & stored for performance
-  tdeeKcal      Float?
-  dailyKcal     Float?
-  proteinG      Float?
-  carbsG        Float?
-  fatG          Float?
+  tdeeKcal  Float?
+  dailyKcal Float?
+  proteinG  Float?
+  carbsG    Float?
+  fatG      Float?
 
-  updatedAt     DateTime      @updatedAt
+  updatedAt DateTime @updatedAt
 
   @@map("user_profiles")
 }
@@ -109,62 +109,36 @@ model FoodItem {
   packageSize Float?
   packageUnit String?
 
-  isVerified  Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  nutrition            Nutrition?
-  allergens            Allergen?
-  productAvailability  ProductAvailability[]
-  recipeIngredients    RecipeIngredient[]
-  mealLogs             MealLog[]
-  inventoryItems       InventoryItem[]
-  favorites            Favorite[]
+  nutrition           Json? // JSONB in PostgreSQL
+  allergens           Json?
+  ingredient          Ingredient?
+  productAvailability ProductAvailability[]
+  recipeIngredients   RecipeIngredient[]
+  mealLogs            MealLog[]
+  inventoryItems      InventoryItem[]
+  favorites           Favorite[]
 
   @@index([name])
-  @@index([eanBarcode])
   @@map("food_items")
 }
 
-model Nutrition {
-  id             String   @id @default(cuid())
-  foodItemId     String   @unique
-  foodItem       FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+model Ingredient {
+  id         String   @id @default(cuid())
+  foodItemId String   @unique
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
 
-  // Per 100g
-  energyKcal     Float
-  protein        Float
-  carbs          Float
-  sugar          Float?
-  fat            Float
-  saturatedFat   Float?
-  fiber          Float?
-  salt           Float?
+  defaultUnit String? // g, ml, db
+  density     Float? // opcionális: ml → g váltáshoz
+  isGeneric   Boolean @default(true)
 
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("nutrition")
-}
-
-model Allergen {
-  id          String   @id @default(cuid())
-  foodItemId  String   @unique
-  foodItem    FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
-
-  gluten      Boolean  @default(false)
-  milk        Boolean  @default(false)
-  egg         Boolean  @default(false)
-  soy         Boolean  @default(false)
-  nuts        Boolean  @default(false)
-  peanuts     Boolean  @default(false)
-  fish        Boolean  @default(false)
-  shellfish   Boolean  @default(false)
-  sesame      Boolean  @default(false)
-  celery      Boolean  @default(false)
-  mustard     Boolean  @default(false)
-  lupin       Boolean  @default(false)
-
-  @@map("allergens")
+  @@map("ingredients")
 }
 
 // ─── Recipes ─────────────────────────────────────────────────────────────────
@@ -179,16 +153,16 @@ model Recipe {
   imageUrl     String?
   isPublic     Boolean  @default(false)
 
-  ownerId      String
-  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  ingredients  RecipeIngredient[] @relation("RecipeIngredients")
-  usedIn       RecipeIngredient[] @relation("ChildRecipe")
-  mealLogs     MealLog[]
-  favorites    Favorite[]
+  ingredients RecipeIngredient[] @relation("RecipeIngredients")
+  usedIn      RecipeIngredient[] @relation("ChildRecipe")
+  mealLogs    MealLog[]
+  favorites   Favorite[]
 
   @@index([name])
   @@index([ownerId])
@@ -197,9 +171,9 @@ model Recipe {
 
 // Supports nested recipes: an ingredient can be a FoodItem OR another Recipe
 model RecipeIngredient {
-  id            String    @id @default(cuid())
-  recipeId      String
-  recipe        Recipe    @relation("RecipeIngredients", fields: [recipeId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  recipeId String
+  recipe   Recipe @relation("RecipeIngredients", fields: [recipeId], references: [id], onDelete: Cascade)
 
   // Exactly one of these must be set
   foodItemId    String?
@@ -207,8 +181,8 @@ model RecipeIngredient {
   childRecipeId String?
   childRecipe   Recipe?   @relation("ChildRecipe", fields: [childRecipeId], references: [id])
 
-  amount        Float
-  unit          String    // g, ml, db, evőkanál, …
+  amount Float
+  unit   String // g, ml, db, evőkanál, …
 
   @@map("recipe_ingredients")
 }
@@ -216,12 +190,12 @@ model RecipeIngredient {
 // ─── Meal Logging ─────────────────────────────────────────────────────────────
 
 model MealLog {
-  id         String    @id @default(cuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  date       DateTime  @db.Date
-  mealType   MealType
+  date     DateTime @db.Date
+  mealType MealType
 
   // Exactly one of these must be set
   foodItemId String?
@@ -229,10 +203,10 @@ model MealLog {
   recipeId   String?
   recipe     Recipe?   @relation(fields: [recipeId], references: [id])
 
-  amount     Float
-  unit       String    @default("g")
+  amount Float
+  unit   String @default("g")
 
-  createdAt  DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId, date])
   @@map("meal_logs")
@@ -241,8 +215,8 @@ model MealLog {
 // ─── Stores & Pricing ────────────────────────────────────────────────────────
 
 model Store {
-  id       String @id @default(cuid())
-  name     String @unique // Lidl, Aldi, Auchan, Interspar, Penny, …
+  id   String @id @default(cuid())
+  name String @unique // Lidl, Aldi, Auchan, Interspar, Penny, …
 
   products ProductAvailability[]
 
@@ -250,35 +224,38 @@ model Store {
 }
 
 model ProductAvailability {
-  id             String   @id @default(cuid())
-  foodItemId     String
-  foodItem       FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
-  storeId        String
-  store          Store    @relation(fields: [storeId], references: [id])
+  id         String   @id @default(cuid())
+  foodItemId String
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id])
 
-  price          Float?
-  unitPrice      Float?   // price per 100g/100ml
+  price          Decimal?  @db.Decimal(10, 2)
+  unitPrice      Decimal?  @db.Decimal(10, 2) // price per 100g/100ml
   priceUpdatedAt DateTime?
-  isAvailable    Boolean  @default(true)
+  isAvailable    Boolean   @default(true)
 
   @@unique([foodItemId, storeId])
+  @@index([storeId])
+  @@index([foodItemId])
+  @@index([priceUpdatedAt])
   @@map("product_availability")
 }
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
 
 model InventoryItem {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   foodItemId String
-  foodItem   FoodItem  @relation(fields: [foodItemId], references: [id])
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id])
 
   quantity   Float
   unit       String
   expiryDate DateTime?
 
-  updatedAt  DateTime  @updatedAt
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, foodItemId])
   @@map("inventory_items")
@@ -287,17 +264,17 @@ model InventoryItem {
 // ─── Favorites ────────────────────────────────────────────────────────────────
 
 model Favorite {
-  id          String       @id @default(cuid())
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        FavoriteType
+  id     String       @id @default(cuid())
+  userId String
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   FavoriteType
 
-  recipeId    String?
-  recipe      Recipe?      @relation(fields: [recipeId], references: [id])
-  foodItemId  String?
-  foodItem    FoodItem?    @relation(fields: [foodItemId], references: [id])
+  recipeId   String?
+  recipe     Recipe?   @relation(fields: [recipeId], references: [id])
+  foodItemId String?
+  foodItem   FoodItem? @relation(fields: [foodItemId], references: [id])
 
-  createdAt   DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([userId, type, recipeId, foodItemId])
   @@map("favorites")
@@ -306,13 +283,13 @@ model Favorite {
 // ─── Health Tracking ──────────────────────────────────────────────────────────
 
 model WeightLog {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  date        DateTime @db.Date
-  weightKg    Float
-  bodyFatPct  Float?
+  date       DateTime @db.Date
+  weightKg   Float
+  bodyFatPct Float?
 
   @@unique([userId, date])
   @@index([userId])
@@ -320,17 +297,34 @@ model WeightLog {
 }
 
 model ActivityLog {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   date           DateTime @db.Date
-  source         String   // apple_health, google_fit, manual
+  source         String // apple_health, google_fit, manual
   caloriesBurned Float?
   steps          Int?
-  workouts       Json?    // flexible structure per source
+  workouts       Json? // flexible structure per source
 
   @@unique([userId, date, source])
   @@index([userId])
   @@map("activity_logs")
+}
+
+// ─── Audit Logs ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tableName String
+  recordId  String?
+  action    String // INSERT, UPDATE, DELETE
+  oldValue  Json?
+  newValue  Json?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([tableName, recordId])
+  @@index([userId])
+  @@map("audit_logs")
 }

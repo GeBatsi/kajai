@@ -3,17 +3,22 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "generate": "prisma generate",
-    "migrate:dev": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "studio": "prisma studio",
-    "type-check": "tsc --noEmit"
+    "generate": "dotenv -e ../../.env -- prisma generate --schema prisma/schema.prisma",
+    "migrate:dev": "dotenv -e ../../.env -- prisma migrate dev --schema prisma/schema.prisma",
+    "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy --schema prisma/schema.prisma",
+    "migrate:reset": "dotenv -e ../../.env -- prisma migrate reset --schema prisma/schema.prisma --force",
+    "studio": "dotenv -e ../../.env -- prisma studio --schema prisma/schema.prisma",
+    "type-check": "tsc --noEmit",
+    "prisma:validate": "dotenv -e ../../.env -- prisma validate --schema prisma/schema.prisma",
+    "prisma": "dotenv -e ../../.env -- prisma --schema prisma/schema.prisma",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev --schema prisma/schema.prisma"
   },
   "dependencies": {
-    "@prisma/client": "^5.14.0"
+    "@prisma/client": "^5.22.0"
   },
   "devDependencies": {
-    "prisma": "^5.14.0",
+    "dotenv-cli": "^11.0.0",
+    "prisma": "^5.22.0",
     "typescript": "^5.4.5"
   },
   "exports": {
