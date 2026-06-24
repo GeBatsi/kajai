@@ -79,9 +79,13 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ### Monorepo structure
 ```
 kajai/
-├── frontend/    # Next.js 14+
-├── backend/     # NestJS
-└── shared/      # shared types/utils
+├── apps/
+│   ├── web/          # Next.js 15 (App Router)
+│   └── api/          # NestJS REST API
+└── packages/
+    ├── db/           # Prisma schema + migrations
+    ├── ui/           # Shared UI components (shadcn/ui)
+    └── types/        # Shared TypeScript types
 ```
 
 ### User roles
