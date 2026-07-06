@@ -27,7 +27,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kajai_test
       NEXTAUTH_SECRET: ci-secret
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:4000
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
