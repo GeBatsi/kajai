@@ -7,10 +7,12 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
     "type-check": "turbo run type-check",
     "test": "turbo run test",
     "db:migrate": "pnpm --filter @kajai/db migrate:dev",
     "db:generate": "pnpm --filter @kajai/db generate",
+    "db:seed": "pnpm --filter @kajai/db seed",
     "db:studio": "pnpm --filter @kajai/db studio",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore"
   },
