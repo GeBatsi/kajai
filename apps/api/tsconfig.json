@@ -1,12 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "target": "ES2022",
     "rootDir": "./src",
     "outDir": "./dist",
-    "baseUrl": "./",
+  
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "incremental": true
