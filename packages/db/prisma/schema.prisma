@@ -56,6 +56,8 @@ model User {
   email     String   @unique
   name      String?
   image     String?
+  password  String?
+  isVerified Boolean @default(false)
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
