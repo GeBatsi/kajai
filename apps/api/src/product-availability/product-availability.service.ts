@@ -15,12 +15,20 @@ export class ProductAvailabilityService {
   async create(dto: CreateProductAvailabilityDto) {
     try {
       return this.prisma.$transaction(async (tx) => {
-        const [foodItem, store] = await Promise.all([
+        const [foodItem, store, productAvailability] = await Promise.all([
           tx.foodItem.findUnique({
             where: { id: dto.foodItemId },
           }),
           tx.store.findUnique({
             where: { id: dto.storeId },
+          }),
+          tx.productAvailability.findUnique({
+            where: {
+              foodItemId_storeId: {
+                foodItemId: dto.foodItemId,
+                storeId: dto.storeId,
+              },
+            },
           }),
         ])
 
@@ -30,6 +38,9 @@ export class ProductAvailabilityService {
 
         if (!store) {
           throw new NotFoundException('A kapcsolódó Store nem található.')
+        }
+        if (productAvailability) {
+          throw new ConflictException('A kapcsolódó ProductAvailability már létezik.')
         }
 
         const createdAvailability = await tx.productAvailability.create({
