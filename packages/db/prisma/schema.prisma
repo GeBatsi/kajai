@@ -70,6 +70,8 @@ model User {
   favorites      Favorite[]
   recipes        Recipe[]
 
+  mailTokens MailToken[]
+
   @@map("users")
 }
 
@@ -329,4 +331,18 @@ model AuditLog {
   @@index([tableName, recordId])
   @@index([userId])
   @@map("audit_logs")
+}
+
+model MailToken {
+  id        String   @id @default(cuid())
+  mailToken String   @unique
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([mailToken])
+  @@index([userId])
+
+  @@map("mail_tokens")
 }

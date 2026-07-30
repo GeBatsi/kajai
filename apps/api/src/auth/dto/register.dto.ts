@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, Matches, IsOptional } from 'class-validator';
 
 export class RegisterDto {
 
@@ -16,4 +16,8 @@ export class RegisterDto {
     message: 'A jelszónak legalább egy számot tartalmaznia kell'
   })
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  name? :string | null;
 }
