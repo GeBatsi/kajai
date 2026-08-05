@@ -1,12 +1,17 @@
-import { Module } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
+import { Module } from '@nestjs/common'
+import { AuthController } from './auth.controller'
+import { AuthService } from './auth.service'
+import { NextAuthGuard } from './guards/nextauth.guard'
+
 import { UsersModule } from '../users/users.module';
 import { MailModule } from '../mail/mail.module';
 import { JwtModule } from '@nestjs/jwt';
 import { MailTokenService } from '../mail-token/mail-token.service';
 
 @Module({
+  controllers: [AuthController],
+  providers: [AuthService, NextAuthGuard, MailTokenService,],
+  exports: [NextAuthGuard, AuthService],
   imports: [
     UsersModule,
 
@@ -19,15 +24,5 @@ import { MailTokenService } from '../mail-token/mail-token.service';
       }
     }),
   ],
-  providers:[
-    AuthService,
-    MailTokenService,
-  ],
-  controllers:[
-    AuthController
-  ],
-  exports:[
-    AuthService
-  ]
 })
 export class AuthModule {}

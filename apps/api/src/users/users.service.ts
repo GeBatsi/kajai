@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailTokenService } from '../mail-token/mail-token.service';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@kajai/db'
 
 
 @Injectable()
@@ -12,19 +13,36 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private mailTokenService: MailTokenService,
-    private jwtService:JwtService
+    private jwtService:JwtService,
   ) {}
 
-  create(createUserDto: CreateUserDto) {
-    return this.prisma.user.create({
-      data: {
-        email: createUserDto.email,
-        name: createUserDto.name,
-        image: createUserDto.image,
-        password: createUserDto.password,
-      },
-  })
-}
+ async create(dto: CreateUserDto) {
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          name: dto.name ?? null,
+          image: dto.image ?? null,
+          role: dto.role,
+          profile: { create: {} },
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          role: true,
+          createdAt: true,
+        },
+      })
+      return user
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException('Ez az e-mail cím már regisztrált')
+      }
+      throw e
+    }
+  }
 
   findAll() {
      return this.prisma.user.findMany();
@@ -90,3 +108,4 @@ export class UsersService {
 };
  }
 }
+

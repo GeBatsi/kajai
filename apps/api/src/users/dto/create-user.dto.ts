@@ -39,4 +39,12 @@ export class CreateUserDto {
    @IsOptional()
    isVerified?:boolean
 
+     @IsOptional()
+  @IsString()
+  image?: string
+
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role
+
 }
