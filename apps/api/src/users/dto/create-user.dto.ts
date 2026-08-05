@@ -3,7 +3,7 @@ import {
   IsOptional,
   IsString,
   MinLength,
-  Matches
+  Matches,
 } from 'class-validator';
 
 
@@ -36,6 +36,7 @@ export class CreateUserDto {
   })
   password?: string;
 
-  
+   @IsOptional()
+   isVerified?:boolean
 
 }
