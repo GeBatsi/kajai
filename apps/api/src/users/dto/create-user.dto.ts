@@ -1,9 +1,11 @@
+import { Role } from '@prisma/client';
 import {
   IsEmail,
   IsOptional,
   IsString,
   MinLength,
   Matches,
+  IsEnum,
 } from 'class-validator';
 
 
@@ -38,10 +40,6 @@ export class CreateUserDto {
 
    @IsOptional()
    isVerified?:boolean
-
-     @IsOptional()
-  @IsString()
-  image?: string
 
   @IsOptional()
   @IsEnum(Role)

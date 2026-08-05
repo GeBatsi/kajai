@@ -1,6 +1,2 @@
-<<<<<<< HEAD
-export { FoodItemType, Prisma, PrismaClient } from '@prisma/client'
-=======
-export { Prisma, PrismaClient, Role } from '@prisma/client'
->>>>>>> dev
+export { FoodItemType, Prisma, PrismaClient, Role } from '@prisma/client'
 export type * from '@prisma/client'
