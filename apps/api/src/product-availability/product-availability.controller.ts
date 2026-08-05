@@ -13,6 +13,7 @@ import type { Prisma, ProductAvailability } from '@kajai/db';
 import { ProductAvailabilityService } from './product-availability.service';
 import { CreateProductAvailabilityDto } from './dto/create-product-availability.dto';
 import { UpdateProductAvailabilityDto } from './dto/update-product-availability.dto';
+import type { ProductAvailabilityResponse } from './product-availability-response.mapper';
 
 type ProductAvailabilityWithDetails = Prisma.ProductAvailabilityGetPayload<{
   include: {
@@ -20,6 +21,9 @@ type ProductAvailabilityWithDetails = Prisma.ProductAvailabilityGetPayload<{
     store: true;
   };
 }>;
+
+type ProductAvailabilityWithDetailsResponse =
+  ProductAvailabilityResponse<ProductAvailabilityWithDetails>;
 
 @Controller('product-availability')
 export class ProductAvailabilityController {
@@ -30,7 +34,7 @@ export class ProductAvailabilityController {
   @Post()
   create(
     @Body() dto: CreateProductAvailabilityDto,
-  ): Promise<ProductAvailabilityWithDetails> {
+  ): Promise<ProductAvailabilityWithDetailsResponse> {
     return this.productAvailabilityService.create(dto);
   }
 
@@ -40,7 +44,7 @@ export class ProductAvailabilityController {
     @Query('storeId') storeId?: string,
     @Query('onlyAvailable', new ParseBoolPipe({ optional: true }))
     onlyAvailable?: boolean,
-  ): Promise<ProductAvailabilityWithDetails[]> {
+  ): Promise<ProductAvailabilityWithDetailsResponse[]> {
     return this.productAvailabilityService.findAll(
       foodItemId,
       storeId,
@@ -49,7 +53,9 @@ export class ProductAvailabilityController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<ProductAvailabilityWithDetails> {
+  findOne(
+    @Param('id') id: string,
+  ): Promise<ProductAvailabilityWithDetailsResponse> {
     return this.productAvailabilityService.findOne(id);
   }
 
@@ -57,12 +63,14 @@ export class ProductAvailabilityController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateProductAvailabilityDto,
-  ): Promise<ProductAvailabilityWithDetails> {
+  ): Promise<ProductAvailabilityWithDetailsResponse> {
     return this.productAvailabilityService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<ProductAvailability> {
+  remove(
+    @Param('id') id: string,
+  ): Promise<ProductAvailabilityResponse<ProductAvailability>> {
     return this.productAvailabilityService.remove(id);
   }
 }

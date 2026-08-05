@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { CreateProductAvailabilityDto } from './dto/create-product-availability.dto'
 import { UpdateProductAvailabilityDto } from './dto/update-product-availability.dto'
 import { AuditService } from '../audit/audit.service'
+import { mapProductAvailabilityResponse } from './product-availability-response.mapper'
 
 @Injectable()
 export class ProductAvailabilityService {
@@ -15,12 +16,20 @@ export class ProductAvailabilityService {
   async create(dto: CreateProductAvailabilityDto) {
     try {
       return this.prisma.$transaction(async (tx) => {
-        const [foodItem, store] = await Promise.all([
+        const [foodItem, store, productAvailability] = await Promise.all([
           tx.foodItem.findUnique({
             where: { id: dto.foodItemId },
           }),
           tx.store.findUnique({
             where: { id: dto.storeId },
+          }),
+          tx.productAvailability.findUnique({
+            where: {
+              foodItemId_storeId: {
+                foodItemId: dto.foodItemId,
+                storeId: dto.storeId,
+              },
+            },
           }),
         ])
 
@@ -30,6 +39,9 @@ export class ProductAvailabilityService {
 
         if (!store) {
           throw new NotFoundException('A kapcsolódó Store nem található.')
+        }
+        if (productAvailability) {
+          throw new ConflictException('A kapcsolódó ProductAvailability már létezik.')
         }
 
         const createdAvailability = await tx.productAvailability.create({
@@ -55,7 +67,7 @@ export class ProductAvailabilityService {
           newValue: createdAvailability,
         })
 
-        return createdAvailability
+        return mapProductAvailabilityResponse(createdAvailability)
       })
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -69,7 +81,7 @@ export class ProductAvailabilityService {
   }
 
   async findAll(foodItemId?: string, storeId?: string, onlyAvailable?: boolean) {
-    return this.prisma.productAvailability.findMany({
+    const availabilities = await this.prisma.productAvailability.findMany({
       where: {
         ...(foodItemId ? { foodItemId } : {}),
         ...(storeId ? { storeId } : {}),
@@ -83,9 +95,15 @@ export class ProductAvailabilityService {
         priceUpdatedAt: 'desc',
       },
     })
+
+    return availabilities.map(mapProductAvailabilityResponse)
   }
 
   async findOne(id: string) {
+    return mapProductAvailabilityResponse(await this.findOneEntity(id))
+  }
+
+  private async findOneEntity(id: string) {
     const availability = await this.prisma.productAvailability.findUnique({
       where: { id },
       include: {
@@ -102,7 +120,7 @@ export class ProductAvailabilityService {
   }
 
   async update(id: string, dto: UpdateProductAvailabilityDto) {
-    const oldAvailability = await this.findOne(id)
+    const oldAvailability = await this.findOneEntity(id)
 
     const isPriceChanged = dto.price !== undefined || dto.unitPrice !== undefined
 
@@ -129,12 +147,12 @@ export class ProductAvailabilityService {
         newValue: updatedAvailability,
       })
 
-      return updatedAvailability
+      return mapProductAvailabilityResponse(updatedAvailability)
     })
   }
 
   async remove(id: string) {
-    const oldAvailability = await this.findOne(id)
+    const oldAvailability = await this.findOneEntity(id)
 
     return this.prisma.$transaction(async (tx) => {
       const deletedAvailability = await tx.productAvailability.delete({
@@ -148,7 +166,7 @@ export class ProductAvailabilityService {
         oldValue: oldAvailability,
       })
 
-      return deletedAvailability
+      return mapProductAvailabilityResponse(deletedAvailability)
     })
   }
 }
