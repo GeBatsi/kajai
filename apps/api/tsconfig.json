@@ -5,7 +5,6 @@
     "moduleResolution": "node",
     "target": "ES2022",
     "rootDir": "./src",
-    "rootDir": "./src",
     "outDir": "./dist",
     "sourceMap": true,
     "removeComments": true,
