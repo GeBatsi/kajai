@@ -39,11 +39,13 @@ if(exists){
 
 const passwordHash = await bcrypt.hash(dto.password,12);
 
+
 const user = await this.usersService.create({
  email:dto.email,
  password:passwordHash,
  name:dto.name ? dto.name : undefined
  });
+ console.log(user)
 
  const mailToken = crypto.randomBytes(32).toString("base64url");
  await this.mailTokenService.create(user.id, mailToken);
@@ -91,6 +93,7 @@ return {
    id:user.id,
    email:user.email,
    name:user.name,
+   role:user.role
  }
 };
 }

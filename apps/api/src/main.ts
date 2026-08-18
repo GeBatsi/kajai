@@ -16,9 +16,10 @@ async function bootstrap() {
     }),
   )
   app.enableCors({
-    origin: process.env.NEXTAUTH_URL ?? 'http://localhost:3000',
+    origin: process.env.NEXTAUTH_URL2 ?? 'http://localhost:4000',
     credentials: true,
-  })
+  },
+)
 
   const port = process.env.API_PORT ?? 3001
   await app.listen(port)

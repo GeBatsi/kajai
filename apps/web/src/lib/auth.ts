@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import AppleProvider from 'next-auth/providers/apple'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { SignJWT, importPKCS8 } from 'jose'
 import { prisma } from './prisma'
 
@@ -40,6 +41,61 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         clientId: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       }),
+      CredentialsProvider({
+        name: 'Email és jelszó',
+
+        credentials: {
+          email: {
+            label: 'Email',
+            type: 'email',
+          },
+          password: {
+            label: 'Jelszó',
+            type: 'password',
+          },
+        },
+
+        async authorize(credentials) {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error('Az email és a jelszó megadása kötelező')
+          }
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: credentials.email,
+                password: credentials.password,
+              }),
+            },
+          )
+
+          const data = await response.json().catch(() => null)
+
+          if (!response.ok) {
+            const message =
+              Array.isArray(data?.message)
+                ? data.message.join(', ')
+                : data?.message || 'Sikertelen bejelentkezés'
+
+            throw new Error(message)
+          }
+          if (!data?.user) {
+            throw new Error('A szerver nem adott vissza felhasználói adatokat')
+          }
+
+          return {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name,
+            role: data.user.role,
+          }
+        },
+      }),
+
       ...(process.env.APPLE_ID && appleSecret
         ? [AppleProvider({ clientId: process.env.APPLE_ID, clientSecret: appleSecret })]
         : []),

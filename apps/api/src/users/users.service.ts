@@ -25,6 +25,7 @@ export class UsersService {
           image: dto.image ?? null,
           role: dto.role,
           profile: { create: {} },
+          password:dto.password ?? null
         },
         select: {
           id: true,
