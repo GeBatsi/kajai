@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Post, Res, UseGuards,Query } from '@nestjs/common'
 import { Response } from 'express'
 import { NextAuthGuard } from './guards/nextauth.guard'
 import { CurrentUser } from './decorators/current-user.decorator'
@@ -15,6 +15,11 @@ export class AuthController {
   getMe(@CurrentUser() user: AuthUser) {
     return this.authService.getUserById(user.id)
   }
+
+  @Get('verify')
+verify(@Query('id') token: string) {
+  return this.authService.verifyEmail(token)
+}
 
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {

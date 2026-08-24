@@ -5,8 +5,9 @@ import { NextAuthGuard } from './guards/nextauth.guard'
 
 import { UsersModule } from '../users/users.module';
 import { MailModule } from '../mail/mail.module';
-import { JwtModule } from '@nestjs/jwt';
+// import { JwtModule } from '@nestjs/jwt';
 import { MailTokenService } from '../mail-token/mail-token.service';
+import { TokenModule } from '../token/token.module';
 
 @Module({
   controllers: [AuthController],
@@ -14,15 +15,8 @@ import { MailTokenService } from '../mail-token/mail-token.service';
   exports: [NextAuthGuard, AuthService],
   imports: [
     UsersModule,
-
+    TokenModule,
     MailModule,
-
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secret',
-      signOptions:{
-        expiresIn:'7d'
-      }
-    }),
   ],
 })
 export class AuthModule {}

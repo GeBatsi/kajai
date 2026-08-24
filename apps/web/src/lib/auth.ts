@@ -96,6 +96,57 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         },
       }),
 
+  CredentialsProvider({
+  id: 'email-verification',
+  name: 'Email megerősítés',
+
+  credentials: {
+    token: {
+      label: 'Verification token',
+      type: 'text',
+    },
+  },
+
+  async authorize(credentials) {
+    if (!credentials?.token) {
+      throw new Error('Hiányzó megerősítő token')
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify?id=${encodeURIComponent(
+        credentials.token,
+      )}`,
+      {
+        method: 'GET',
+      },
+    )
+
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      const message =
+        Array.isArray(data?.message)
+          ? data.message.join(', ')
+          : data?.message || 'Érvénytelen megerősítő token'
+
+      throw new Error(message)
+    }
+
+    if (!data?.user) {
+      throw new Error(
+        'A szerver nem adott vissza felhasználói adatokat',
+      )
+    }
+
+    return {
+      id: data.user.id,
+      email: data.user.email,
+      name: data.user.name,
+      role: data.user.role,
+    }
+  },
+}),
+
       ...(process.env.APPLE_ID && appleSecret
         ? [AppleProvider({ clientId: process.env.APPLE_ID, clientSecret: appleSecret })]
         : []),

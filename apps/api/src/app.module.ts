@@ -10,6 +10,8 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MailModule } from './mail/mail.module';
+// import { TokenService } from './token/token.service';
+import { TokenModule } from './token/token.module';
 
 @Module({
   imports: [
@@ -27,7 +29,9 @@ import { MailModule } from './mail/mail.module';
     AuthModule,
     UsersModule,
     MailModule,
+    TokenModule,
   ],
+  providers: [],
 })
 export class AppModule {}
 

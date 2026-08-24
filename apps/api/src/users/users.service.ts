@@ -3,8 +3,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailTokenService } from '../mail-token/mail-token.service';
-import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@kajai/db'
+import {TokenService} from '../token/token.service'
 
 
 @Injectable()
@@ -13,7 +13,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private mailTokenService: MailTokenService,
-    private jwtService:JwtService,
+    private tokenService:TokenService
   ) {}
 
  async create(dto: CreateUserDto) {
@@ -93,10 +93,7 @@ export class UsersService {
   if(!user) {
     throw new NotFoundException("A felhasználó nem található")
   }
-  const token = this.jwtService.sign({
-   sub:user.id,
-   email:user.email,
- });
+  const token = this.tokenService.generateToken(user.id,user.email)
   await this.mailTokenService.delete(uToken.id);
   return {
  message:'Sikeres email validáció és bejelentkezés',
@@ -108,5 +105,38 @@ export class UsersService {
  }
 };
  }
+
+ async getUserWithProfilById(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        role: true,
+        createdAt: true,
+        profile: {
+          select: {
+            gender: true,
+            dateOfBirth: true,
+            heightCm: true,
+            weightKg: true,
+            activityLevel: true,
+            goalType: true,
+            tdeeKcal: true,
+            dailyKcal: true,
+            proteinG: true,
+            carbsG: true,
+            fatG: true,
+          },
+        },
+      },
+    })
+
+    if (!user) throw new NotFoundException('Felhasználó nem található')
+    return user
+  }
+
 }
 
