@@ -1,35 +1,35 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
-import { FoodItemType } from '@kajai/db';
-import type { FoodItem, Prisma } from '@kajai/db';
-import { FoodsService } from './foods.service';
-import { CreateFoodDto } from './dto/create-food.dto';
-import { UpdateFoodDto } from './dto/update-food.dto';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common'
+import { FoodItemType } from '@kajai/db'
+import type { FoodItem, Prisma } from '@kajai/db'
+import { FoodsService } from './foods.service'
+import { CreateFoodDto } from './dto/create-food.dto'
+import { UpdateFoodDto } from './dto/update-food.dto'
+import { HttpCode, HttpStatus } from '@nestjs/common'
+import { DevAuthGuard } from '../auth/guards/dev-auth.guard'
+import { RolesGuard } from '../auth/guards/role.guard'
+import { UseGuards } from '@nestjs/common'
+import { Roles } from '../auth/decorators/roles.decorator'
+import { CurrentUser } from '../auth/decorators/current-user.decorator'
+import { RequestUser } from '../auth/types/request-user.type'
 
 type FoodItemWithDetails = Prisma.FoodItemGetPayload<{
   include: {
-    ingredient: true;
+    ingredient: true
     productAvailability: {
-      include: { store: true };
-    };
-  };
-}>;
+      include: { store: true }
+    }
+  }
+}>
 
 @Controller('foods')
 export class FoodsController {
   constructor(private readonly foodsService: FoodsService) {}
 
   @Post()
-  create(@Body() dto: CreateFoodDto): Promise<FoodItem> {
-    return this.foodsService.create(dto);
+  @UseGuards(DevAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  create(@Body() dto: CreateFoodDto, @CurrentUser() user: RequestUser): Promise<FoodItem> {
+    return this.foodsService.create(dto, user.id)
   }
 
   @Get()
@@ -37,21 +37,26 @@ export class FoodsController {
     @Query('search') search?: string,
     @Query('type') type?: FoodItemType,
   ): Promise<FoodItem[]> {
-    return this.foodsService.findAll(search, type);
+    return this.foodsService.findAll(search, type)
   }
 
   @Get(':id')
   findOne(@Param('id') id: string): Promise<FoodItemWithDetails> {
-    return this.foodsService.findOne(id);
+    return this.foodsService.findOne(id)
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateFoodDto): Promise<FoodItem> {
-    return this.foodsService.update(id, dto);
+  @UseGuards(DevAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  update(@Param('id') id: string, @Body() dto: UpdateFoodDto, @CurrentUser() user: RequestUser,): Promise<FoodItem> {
+    return this.foodsService.update(id, dto, user.id)
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<FoodItem> {
-    return this.foodsService.remove(id);
+  @UseGuards(DevAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id') id: string, @CurrentUser() user: RequestUser,): Promise<void> {
+    return this.foodsService.remove(id, user.id)
   }
 }

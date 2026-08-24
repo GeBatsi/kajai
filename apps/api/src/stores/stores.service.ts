@@ -12,7 +12,7 @@ export class StoresService {
     private readonly auditService: AuditService,
   ) {}
 
-  async create(dto: CreateStoreDto) {
+  async create(dto: CreateStoreDto, userId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const createdStore = await tx.store.create({
@@ -26,6 +26,7 @@ export class StoresService {
           recordId: createdStore.id,
           action: 'CREATE',
           newValue: createdStore,
+          userId,
         })
 
         return createdStore
@@ -74,7 +75,7 @@ export class StoresService {
     return store
   }
 
-  async update(id: string, dto: UpdateStoreDto) {
+  async update(id: string, dto: UpdateStoreDto, userId: string) {
     const oldStore = await this.findOne(id)
 
     try {
@@ -92,6 +93,7 @@ export class StoresService {
           action: 'UPDATE',
           oldValue: oldStore,
           newValue: updatedStore,
+          userId,
         })
 
         return updatedStore
@@ -105,23 +107,19 @@ export class StoresService {
     }
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     const oldStore = await this.findOne(id)
 
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const deletedStore = await tx.store.delete({
-          where: { id },
-        })
 
         await this.auditService.logWithTx(tx, {
           tableName: 'stores',
           recordId: id,
           action: 'DELETE',
           oldValue: oldStore,
+          userId,
         })
-
-        return deletedStore
       })
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {

@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { FoodItemType } from '@kajai/db'
-import type { Ingredient, Prisma } from '@kajai/db'
+import type { Prisma } from '@kajai/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateIngredientDto } from './dto/create-ingredient.dto'
 import { UpdateIngredientDto } from './dto/update-ingredient.dto'
@@ -19,7 +19,7 @@ export class IngredientsService {
     private readonly auditService: AuditService,
   ) {}
 
-  async create(dto: CreateIngredientDto): Promise<IngredientWithFoodItem> {
+  async create(dto: CreateIngredientDto, userId: string): Promise<IngredientWithFoodItem> {
     const foodItem = await this.prisma.foodItem.findUnique({
       where: { id: dto.foodItemId },
     })
@@ -60,6 +60,7 @@ export class IngredientsService {
         recordId: createdIngredient.id,
         action: 'CREATE',
         newValue: createdIngredient,
+        userId,
       })
 
       return createdIngredient
@@ -107,7 +108,7 @@ export class IngredientsService {
     return ingredient
   }
 
-  async update(id: string, dto: UpdateIngredientDto): Promise<IngredientWithFoodItem> {
+  async update(id: string, dto: UpdateIngredientDto, userId: string): Promise<IngredientWithFoodItem> {
     const oldIngredient = await this.findOne(id)
 
     return this.prisma.$transaction(async (tx) => {
@@ -129,28 +130,25 @@ export class IngredientsService {
         action: 'UPDATE',
         oldValue: oldIngredient,
         newValue: updatedIngredient,
+        userId,
       })
 
       return updatedIngredient
     })
   }
 
-  async remove(id: string): Promise<Ingredient> {
+  async remove(id: string, userId: string): Promise<void> {
     const oldIngredient = await this.findOne(id)
 
     return this.prisma.$transaction(async (tx) => {
-      const deletedIngredient = await tx.ingredient.delete({
-        where: { id },
-      })
-
+   
       await this.auditService.logWithTx(tx, {
         tableName: 'ingredients',
         recordId: id,
         action: 'DELETE',
         oldValue: oldIngredient,
+        userId,
       })
-
-      return deletedIngredient
     })
   }
 }

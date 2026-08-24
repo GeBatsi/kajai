@@ -12,7 +12,7 @@ export class FoodsService {
     private readonly auditService: AuditService,
   ) {}
 
-  async create(dto: CreateFoodDto) {
+  async create(dto: CreateFoodDto, userId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const createdFood = await tx.foodItem.create({
@@ -32,6 +32,7 @@ export class FoodsService {
           recordId: createdFood.id,
           action: 'CREATE',
           newValue: createdFood,
+          userId,
         })
 
         return createdFood
@@ -82,7 +83,7 @@ export class FoodsService {
     return food
   }
 
-  async update(id: string, dto: UpdateFoodDto) {
+  async update(id: string, dto: UpdateFoodDto, userId: string) {
     const oldFood = await this.findOne(id)
 
     return this.prisma.$transaction(async (tx) => {
@@ -101,28 +102,25 @@ export class FoodsService {
         action: 'UPDATE',
         oldValue: oldFood,
         newValue: updatedFood,
+        userId,
       })
 
       return updatedFood
     })
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     const oldFood = await this.findOne(id)
 
     return this.prisma.$transaction(async (tx) => {
-      const deletedFood = await tx.foodItem.delete({
-        where: { id },
-      })
 
       await this.auditService.logWithTx(tx, {
         tableName: 'food_items',
         recordId: id,
         action: 'DELETE',
         oldValue: oldFood,
+        userId,
       })
-
-      return deletedFood
     })
   }
 }

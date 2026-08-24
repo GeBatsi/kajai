@@ -13,7 +13,7 @@ export class ProductAvailabilityService {
     private readonly auditService: AuditService,
   ) {}
 
-  async create(dto: CreateProductAvailabilityDto) {
+  async create(dto: CreateProductAvailabilityDto, userId: string) {
     try {
       return this.prisma.$transaction(async (tx) => {
         const [foodItem, store, productAvailability] = await Promise.all([
@@ -65,6 +65,7 @@ export class ProductAvailabilityService {
           recordId: createdAvailability.id,
           action: 'CREATE',
           newValue: createdAvailability,
+          userId,
         })
 
         return mapProductAvailabilityResponse(createdAvailability)
@@ -119,7 +120,7 @@ export class ProductAvailabilityService {
     return availability
   }
 
-  async update(id: string, dto: UpdateProductAvailabilityDto) {
+  async update(id: string, dto: UpdateProductAvailabilityDto, userId: string) {
     const oldAvailability = await this.findOneEntity(id)
 
     const isPriceChanged = dto.price !== undefined || dto.unitPrice !== undefined
@@ -145,28 +146,25 @@ export class ProductAvailabilityService {
         action: 'UPDATE',
         oldValue: oldAvailability,
         newValue: updatedAvailability,
+        userId,
       })
 
       return mapProductAvailabilityResponse(updatedAvailability)
     })
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     const oldAvailability = await this.findOneEntity(id)
 
     return this.prisma.$transaction(async (tx) => {
-      const deletedAvailability = await tx.productAvailability.delete({
-        where: { id },
-      })
 
       await this.auditService.logWithTx(tx, {
         tableName: 'product_availability',
         recordId: id,
         action: 'DELETE',
         oldValue: oldAvailability,
+        userId,
       })
-
-      return mapProductAvailabilityResponse(deletedAvailability)
     })
   }
 }
