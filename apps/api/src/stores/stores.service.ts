@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { CreateStoreDto } from './dto/create-store.dto'
 import { UpdateStoreDto } from './dto/update-store.dto'
 import { AuditService } from '../audit/audit.service'
+import { mapProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
 
 @Injectable()
 export class StoresService {
@@ -80,7 +81,10 @@ export class StoresService {
         throw new NotFoundException('Store nem található.')
       }
 
-      return store
+      return {
+        ...store,
+        products: store.products.map(mapProductAvailabilityResponse),
+      }
     } catch (error) {
       this.logError(`A bolt lekérése sikertelen: ${id}`, error)
       throw error

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { CreateFoodDto } from './dto/create-food.dto'
 import { UpdateFoodDto } from './dto/update-food.dto'
 import { AuditService } from '../audit/audit.service'
+import { mapProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
 
 @Injectable()
 export class FoodsService {
@@ -88,7 +89,10 @@ export class FoodsService {
         throw new NotFoundException('Food item nem található.')
       }
 
-      return food
+      return {
+        ...food,
+        productAvailability: food.productAvailability.map(mapProductAvailabilityResponse),
+      }
     } catch (error) {
       this.logError(`A food item lekérése sikertelen: ${id}`, error)
       throw error

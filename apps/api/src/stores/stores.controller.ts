@@ -10,6 +10,7 @@ import { UseGuards } from '@nestjs/common'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequestUser } from '../auth/types/request-user.type';
+import type { ProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
 
 type StoreWithProducts = Prisma.StoreGetPayload<{
   include: {
@@ -20,6 +21,10 @@ type StoreWithProducts = Prisma.StoreGetPayload<{
     }
   }
 }>
+
+type StoreWithProductsResponse = Omit<StoreWithProducts, 'products'> & {
+  products: ProductAvailabilityResponse<StoreWithProducts['products'][number]>[]
+}
 
 @Controller('stores')
 export class StoresController {
@@ -38,7 +43,7 @@ export class StoresController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<StoreWithProducts> {
+  findOne(@Param('id') id: string): Promise<StoreWithProductsResponse> {
     return this.storesService.findOne(id)
   }
 
