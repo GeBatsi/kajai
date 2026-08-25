@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { Prisma } from '@kajai/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateProductAvailabilityDto } from './dto/create-product-availability.dto'
@@ -8,6 +8,8 @@ import { mapProductAvailabilityResponse } from './product-availability-response.
 
 @Injectable()
 export class ProductAvailabilityService {
+  private readonly logger = new Logger(ProductAvailabilityService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
@@ -82,89 +84,121 @@ export class ProductAvailabilityService {
   }
 
   async findAll(foodItemId?: string, storeId?: string, onlyAvailable?: boolean) {
-    const availabilities = await this.prisma.productAvailability.findMany({
-      where: {
-        ...(foodItemId ? { foodItemId } : {}),
-        ...(storeId ? { storeId } : {}),
-        ...(onlyAvailable !== undefined ? { isAvailable: onlyAvailable } : {}),
-      },
-      include: {
-        foodItem: true,
-        store: true,
-      },
-      orderBy: {
-        priceUpdatedAt: 'desc',
-      },
-    })
+    try {
+      const availabilities = await this.prisma.productAvailability.findMany({
+        where: {
+          ...(foodItemId ? { foodItemId } : {}),
+          ...(storeId ? { storeId } : {}),
+          ...(onlyAvailable !== undefined ? { isAvailable: onlyAvailable } : {}),
+        },
+        include: {
+          foodItem: true,
+          store: true,
+        },
+        orderBy: {
+          priceUpdatedAt: 'desc',
+        },
+      })
 
-    return availabilities.map(mapProductAvailabilityResponse)
+      return availabilities.map(mapProductAvailabilityResponse)
+    } catch (error) {
+      this.logError('A termékelérhetőségek lekérése sikertelen.', error)
+      throw error
+    }
   }
 
   async findOne(id: string) {
-    return mapProductAvailabilityResponse(await this.findOneEntity(id))
+    try {
+      return mapProductAvailabilityResponse(await this.findOneEntity(id))
+    } catch (error) {
+      this.logError(`A termékelérhetőség lekérése sikertelen: ${id}`, error)
+      throw error
+    }
   }
 
   private async findOneEntity(id: string) {
-    const availability = await this.prisma.productAvailability.findUnique({
-      where: { id },
-      include: {
-        foodItem: true,
-        store: true,
-      },
-    })
-
-    if (!availability) {
-      throw new NotFoundException('Product availability nem található.')
-    }
-
-    return availability
-  }
-
-  async update(id: string, dto: UpdateProductAvailabilityDto, userId: string) {
-    const oldAvailability = await this.findOneEntity(id)
-
-    const isPriceChanged = dto.price !== undefined || dto.unitPrice !== undefined
-
-    return this.prisma.$transaction(async (tx) => {
-      const updatedAvailability = await tx.productAvailability.update({
+    try {
+      const availability = await this.prisma.productAvailability.findUnique({
         where: { id },
-        data: {
-          price: dto.price,
-          unitPrice: dto.unitPrice,
-          isAvailable: dto.isAvailable,
-          ...(isPriceChanged ? { priceUpdatedAt: new Date() } : {}),
-        },
         include: {
           foodItem: true,
           store: true,
         },
       })
 
-      await this.auditService.logWithTx(tx, {
-        tableName: 'product_availability',
-        recordId: id,
-        action: 'UPDATE',
-        oldValue: oldAvailability,
-        newValue: updatedAvailability,
-        userId,
-      })
+      if (!availability) {
+        throw new NotFoundException('Product availability nem található.')
+      }
 
-      return mapProductAvailabilityResponse(updatedAvailability)
-    })
+      return availability
+    } catch (error) {
+      this.logError(`A termékelérhetőség entitás lekérése sikertelen: ${id}`, error)
+      throw error
+    }
+  }
+
+  async update(id: string, dto: UpdateProductAvailabilityDto, userId: string) {
+    try {
+      const oldAvailability = await this.findOneEntity(id)
+
+      const isPriceChanged = dto.price !== undefined || dto.unitPrice !== undefined
+
+      return await this.prisma.$transaction(async (tx) => {
+        const updatedAvailability = await tx.productAvailability.update({
+          where: { id },
+          data: {
+            price: dto.price,
+            unitPrice: dto.unitPrice,
+            isAvailable: dto.isAvailable,
+            ...(isPriceChanged ? { priceUpdatedAt: new Date() } : {}),
+          },
+          include: {
+            foodItem: true,
+            store: true,
+          },
+        })
+
+        await this.auditService.logWithTx(tx, {
+          tableName: 'product_availability',
+          recordId: id,
+          action: 'UPDATE',
+          oldValue: oldAvailability,
+          newValue: updatedAvailability,
+          userId,
+        })
+
+        return mapProductAvailabilityResponse(updatedAvailability)
+      })
+    } catch (error) {
+      this.logError(`A termékelérhetőség frissítése sikertelen: ${id}`, error)
+      throw error
+    }
   }
 
   async remove(id: string, userId: string) {
-    const oldAvailability = await this.findOneEntity(id)
+    try {
+      const oldAvailability = await this.findOneEntity(id)
 
-    return this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.productAvailability.delete({
+          where: { id },
+        })
 
-      await this.auditService.logWithTx(tx, {
-        tableName: 'product_availability',
-        recordId: id,
-        action: 'DELETE',
-        oldValue: oldAvailability,
-        userId,
+        await this.auditService.logWithTx(tx, {
+          tableName: 'product_availability',
+          recordId: id,
+          action: 'DELETE',
+          oldValue: oldAvailability,
+          userId,
+        })
       })
-    })
+    } catch (error) {
+      this.logError(`A termékelérhetőség törlése sikertelen: ${id}`, error)
+      throw error
+    }
+  }
+
+  private logError(message: string, error: unknown): void {
+    this.logger.error(message, error instanceof Error ? error.stack : String(error))
   }
 }

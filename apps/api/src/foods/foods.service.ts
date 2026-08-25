@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { Prisma, FoodItemType } from '@kajai/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateFoodDto } from './dto/create-food.dto'
@@ -7,6 +7,8 @@ import { AuditService } from '../audit/audit.service'
 
 @Injectable()
 export class FoodsService {
+  private readonly logger = new Logger(FoodsService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
@@ -47,80 +49,107 @@ export class FoodsService {
   }
 
   async findAll(search?: string, type?: FoodItemType) {
-    return this.prisma.foodItem.findMany({
-      where: {
-        ...(type ? { type } : {}),
-        ...(search
-          ? {
-              OR: [
-                { name: { contains: search, mode: 'insensitive' } },
-                { brand: { contains: search, mode: 'insensitive' } },
-                { category: { contains: search, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: { name: 'asc' },
-      take: 50,
-    })
+    try {
+      return await this.prisma.foodItem.findMany({
+        where: {
+          ...(type ? { type } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' } },
+                  { brand: { contains: search, mode: 'insensitive' } },
+                  { category: { contains: search, mode: 'insensitive' } },
+                ],
+              }
+            : {}),
+        },
+        orderBy: { name: 'asc' },
+        take: 50,
+      })
+    } catch (error) {
+      this.logError('A food itemek lekérése sikertelen.', error)
+      throw error
+    }
   }
 
   async findOne(id: string) {
-    const food = await this.prisma.foodItem.findUnique({
-      where: { id },
-      include: {
-        ingredient: true,
-        productAvailability: {
-          include: { store: true },
+    try {
+      const food = await this.prisma.foodItem.findUnique({
+        where: { id },
+        include: {
+          ingredient: true,
+          productAvailability: {
+            include: { store: true },
+          },
         },
-      },
-    })
+      })
 
-    if (!food) {
-      throw new NotFoundException('Food item nem található.')
+      if (!food) {
+        throw new NotFoundException('Food item nem található.')
+      }
+
+      return food
+    } catch (error) {
+      this.logError(`A food item lekérése sikertelen: ${id}`, error)
+      throw error
     }
-
-    return food
   }
 
   async update(id: string, dto: UpdateFoodDto, userId: string) {
-    const oldFood = await this.findOne(id)
+    try {
+      const oldFood = await this.findOne(id)
 
-    return this.prisma.$transaction(async (tx) => {
-      const updatedFood = await tx.foodItem.update({
-        where: { id },
-        data: {
-          ...dto,
-          nutrition: dto.nutrition as Prisma.InputJsonValue | undefined,
-          allergens: dto.allergens as Prisma.InputJsonValue | undefined,
-        },
+      return await this.prisma.$transaction(async (tx) => {
+        const updatedFood = await tx.foodItem.update({
+          where: { id },
+          data: {
+            ...dto,
+            nutrition: dto.nutrition as Prisma.InputJsonValue | undefined,
+            allergens: dto.allergens as Prisma.InputJsonValue | undefined,
+          },
+        })
+
+        await this.auditService.logWithTx(tx, {
+          tableName: 'food_items',
+          recordId: id,
+          action: 'UPDATE',
+          oldValue: oldFood,
+          newValue: updatedFood,
+          userId,
+        })
+
+        return updatedFood
       })
-
-      await this.auditService.logWithTx(tx, {
-        tableName: 'food_items',
-        recordId: id,
-        action: 'UPDATE',
-        oldValue: oldFood,
-        newValue: updatedFood,
-        userId,
-      })
-
-      return updatedFood
-    })
+    } catch (error) {
+      this.logError(`A food item frissítése sikertelen: ${id}`, error)
+      throw error
+    }
   }
 
   async remove(id: string, userId: string) {
-    const oldFood = await this.findOne(id)
+    try {
+      const oldFood = await this.findOne(id)
 
-    return this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.foodItem.delete({
+          where: { id },
+        })
 
-      await this.auditService.logWithTx(tx, {
-        tableName: 'food_items',
-        recordId: id,
-        action: 'DELETE',
-        oldValue: oldFood,
-        userId,
+        await this.auditService.logWithTx(tx, {
+          tableName: 'food_items',
+          recordId: id,
+          action: 'DELETE',
+          oldValue: oldFood,
+          userId,
+        })
       })
-    })
+    } catch (error) {
+      this.logError(`A food item törlése sikertelen: ${id}`, error)
+      throw error
+    }
+  }
+
+  private logError(message: string, error: unknown): void {
+    this.logger.error(message, error instanceof Error ? error.stack : String(error))
   }
 }
