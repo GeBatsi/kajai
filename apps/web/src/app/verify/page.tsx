@@ -112,8 +112,6 @@ function VerifyPageContent() {
 
           <p className="mb-6 text-sm leading-6 text-gray-500">
             A megerősítő link érvénytelen vagy hiányzik.
-            <br />
-            Regisztráljon újra.
           </p>
 
           <a

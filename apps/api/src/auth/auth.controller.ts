@@ -5,6 +5,7 @@ import { CurrentUser } from './decorators/current-user.decorator'
 import { AuthService, type AuthUser } from './auth.service'
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { verifyEmail } from './dto/verify.dto'
 
 @Controller('auth')
 export class AuthController {
@@ -17,8 +18,8 @@ export class AuthController {
   }
 
   @Get('verify')
-verify(@Query('id') token: string) {
-  return this.authService.verifyEmail(token)
+verify(@Query() dto:verifyEmail) {
+  return this.authService.verifyEmail(dto.id)
 }
 
   @Post('logout')

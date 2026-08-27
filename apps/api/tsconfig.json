@@ -13,7 +13,7 @@
     "experimentalDecorators": true,
     "incremental": true
   },
-  "include": [
+  "include": [ 
     "src/**/*"
   ],
   "exclude": [

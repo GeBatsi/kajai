@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadGatewayException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 // import {JwtService} from '@nestjs/jwt' ;
@@ -50,9 +50,13 @@ async register(dto:RegisterDto){
   // console.log(user)
 
   const mailToken = crypto.randomBytes(32).toString("base64url");
-  await this.mailTokenService.create(user.id, mailToken);
-  await this.mailService.sendVerificationEmail(user.email,mailToken);
-
+  try{
+    await this.mailService.sendVerificationEmail(user.email,mailToken);
+    await this.mailTokenService.create(user.id, mailToken);
+  }catch{
+    throw new BadGatewayException("Validációs email küldése sikertelen");
+    
+  }
   return {
     message:'Sikeres regisztráció',
     user:{
@@ -82,11 +86,11 @@ async login(email:string, password:string){
   if(!passwordValid){
       throw new UnauthorizedException('Hibás email vagy jelszó');
   }
-const token = this.tokenService.generateToken(user.id,user.email);
+// const token = this.tokenService.generateToken(user.id,user.email);
 
 return {
  message:'Sikeres bejelentkezés',
- accessToken:token,
+ // accessToken:token,
  user:{
    id:user.id,
    email:user.email,
