@@ -39,25 +39,18 @@ async register(dto:RegisterDto){
   );
   }
 
-  const passwordHash = await bcrypt.hash(dto.password,12);
-
-
-  const user = await this.usersService.create({
-  email:dto.email,
-  password:passwordHash,
-  name:dto.name ? dto.name : undefined
-  });
-  // console.log(user)
-
   const mailToken = crypto.randomBytes(32).toString("base64url");
   try{
-    await this.mailService.sendVerificationEmail(user.email,mailToken);
-    await this.mailTokenService.create(user.id, mailToken);
-  }catch{
-    throw new BadGatewayException("Validációs email küldése sikertelen");
+    const passwordHash = await bcrypt.hash(dto.password,12);
+    await this.mailService.sendVerificationEmail(dto.email,mailToken);
+    const user = await this.usersService.create({
+      email:dto.email,
+      password:passwordHash,
+      name:dto.name ? dto.name : undefined
+    });
     
-  }
-  return {
+    await this.mailTokenService.create(user.id, mailToken);
+    return {
     message:'Sikeres regisztráció',
     user:{
       id:user.id,
@@ -65,6 +58,9 @@ async register(dto:RegisterDto){
       name:user.name,
     }
   };
+  }catch{
+    throw new BadGatewayException("Validációs email küldése sikertelen");    
+  }
 }
 
 async login(email:string, password:string){
