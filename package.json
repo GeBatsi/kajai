@@ -24,6 +24,7 @@
     "@types/node": "^20.0.0",
     "eslint": "^9.0.0",
     "prettier": "^3.0.0",
+    "prisma": "^5.22.0",
     "turbo": "^2.0.0",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.0.0"
@@ -34,6 +35,7 @@
   },
   "packageManager": "pnpm@9.15.9",
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "jose": "^5.9.6"
   }
 }

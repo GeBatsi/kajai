@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface LoginModalProps {
   isOpen: boolean
@@ -91,6 +92,13 @@ export default function LoginModal({
     await signIn('google', {
       callbackUrl: '/',
     })
+  }
+
+  const handleForgotPassword = () => {
+    if (isLoading) return
+
+    setError('')
+    onClose()
   }
 
   return (
@@ -253,7 +261,16 @@ export default function LoginModal({
 
           Folytatás Google-lal
         </button>
-      </div>
+        <div className="mt-2 text-center">
+  <Link
+    href="/forgot_password"
+    onClick={handleForgotPassword}
+    className="text-sm font-medium text-gray-600 transition hover:text-red-600 hover:text-base"
+  >
+    Elfelejtette a jelszavát? kattintson ide
+  </Link>
+</div>
+      </div> 
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { MailTokenService } from '../mail-token/mail-token.service';
 import { NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import {TokenService} from '../token/token.service'
+import { UpdateUserDto } from '../users/dto/update-user.dto';
 
 export interface AuthUser {
   id: string
@@ -49,7 +50,7 @@ async register(dto:RegisterDto){
       name:dto.name ? dto.name : undefined
     });
     
-    await this.mailTokenService.create(user.id, mailToken);
+    await this.mailTokenService.create(user.id, mailToken,'EMAIL_VERIFICATION');
     return {
     message:'Sikeres regisztráció',
     user:{
@@ -114,10 +115,51 @@ return {
   const result = await this.usersService.verifyEmail(token)
   console.log("eredmény::: ",result)
   if(!result) {
-    throw new UnauthorizedException('sikertelen email validáció.',)
+    throw new UnauthorizedException('sikertelen email validáció.')
   }
   // await this.mailTokenService.delete(mailToken.id)
 
   return result
+}
+
+async forgotPassword(email:string){
+  const mailToken = crypto.randomBytes(32).toString("base64url");
+  try{
+    const user=await this.usersService.findByEmail(email,)
+    if(user){
+      await this.mailService.sendNewPasswordEmail(user.email,mailToken);
+      await this.mailTokenService.create(user.id, mailToken,'PASSWORD_RESET');
+    }
+  }catch{console.log("gyanús új jelszó kérés vagy az emailcím elérhetetlen")}
+ return {message:'Email küldtünk a további teendőkröl'}
+}
+
+async resetPassword(email:string, password:string, token:string){
+  let success=true;
+  try{
+    const passwordHash = await bcrypt.hash(password,12);  
+    const mailToken = await this.mailTokenService.findByToken(token)
+
+    if (!mailToken) throw new Error() 
+
+    const user = await this.usersService.findByEmail(email)
+    console.log(user,email)
+    if (!user || user.password === null) {
+      throw new Error()
+    }
+
+    if (user.id !== mailToken.userId) throw new Error()
+
+    if (Date.now()-mailToken.createdAt.getTime() <= 3600*1000) {
+      const data:UpdateUserDto={password:passwordHash}
+      await this.usersService.update(user.id,data)
+    }
+    else success=false
+    console.log("siker: ",success)
+
+    await this.mailTokenService.delete(mailToken.id)
+    if(!success) throw new Error()
+} catch {throw new ConflictException("Sikertelen jelszó módosítás")}
+return {message:'Jelszómódosítás sikeres'}
 }
 }

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TokenType } from '@prisma/client';
 
 @Injectable()
 export class MailTokenService {
@@ -8,11 +9,12 @@ export class MailTokenService {
     private readonly prisma: PrismaService,
   ) {}
 
-  create(userId: string, token: string) {
+  create(userId: string, token: string,tokenType:TokenType) {
     return this.prisma.mailToken.create({
       data: {
         userId,
         mailToken: token,
+        type: tokenType
       },
     });
   }
@@ -34,5 +36,9 @@ export class MailTokenService {
         id,
       },
     });
+  }
+
+  createPasswordToken(){
+    
   }
 }

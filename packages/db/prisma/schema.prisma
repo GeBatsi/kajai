@@ -49,6 +49,11 @@ enum FavoriteType {
   PRODUCT
 }
 
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 // ─── User & Profile ───────────────────────────────────────────────────────────
 
 model User {
@@ -337,6 +342,7 @@ model MailToken {
   id        String   @id @default(cuid())
   mailToken String   @unique
   createdAt DateTime @default(now())
+  type TokenType
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
