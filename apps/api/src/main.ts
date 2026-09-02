@@ -16,7 +16,7 @@ async function bootstrap() {
     }),
   )
   app.enableCors({
-    origin: process.env.NEXTAUTH_URL2 ?? 'http://localhost:4000',
+    origin: process.env.NEXTAUTH_URL ?? 'http://localhost:4000',
     credentials: true,
   },
 )
