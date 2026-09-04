@@ -7,6 +7,8 @@ import { IngredientsModule } from './ingredients/ingredients.module';
 import { ProductAvailabilityModule } from './product-availability/product-availability.module';
 import { StoresModule } from './stores/stores.module';
 import { AuditModule } from './audit/audit.module';
+import { AuthModule } from './auth/auth.module'
+import { UsersModule } from './users/users.module'
 
 @Module({
   imports: [
@@ -21,6 +23,10 @@ import { AuditModule } from './audit/audit.module';
     ProductAvailabilityModule,
     StoresModule,
     AuditModule,
+    PrismaModule,
+    AuthModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
+
