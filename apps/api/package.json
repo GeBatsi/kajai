@@ -7,6 +7,7 @@
     "build": "nest build",
     "start": "node dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,6 +16,7 @@
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.3.0",
+    "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/throttler": "^5.1.2",
     "class-transformer": "^0.5.1",
