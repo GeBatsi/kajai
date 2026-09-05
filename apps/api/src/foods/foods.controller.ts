@@ -11,6 +11,7 @@ import { UseGuards } from '@nestjs/common'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequestUser } from '../auth/types/request-user.type'
+import type { ProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
 
 type FoodItemWithDetails = Prisma.FoodItemGetPayload<{
   include: {
@@ -20,6 +21,12 @@ type FoodItemWithDetails = Prisma.FoodItemGetPayload<{
     }
   }
 }>
+
+type FoodItemWithDetailsResponse = Omit<FoodItemWithDetails, 'productAvailability'> & {
+  productAvailability: ProductAvailabilityResponse<
+    FoodItemWithDetails['productAvailability'][number]
+  >[]
+}
 
 @Controller('foods')
 export class FoodsController {
@@ -41,7 +48,7 @@ export class FoodsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<FoodItemWithDetails> {
+  findOne(@Param('id') id: string): Promise<FoodItemWithDetailsResponse> {
     return this.foodsService.findOne(id)
   }
 

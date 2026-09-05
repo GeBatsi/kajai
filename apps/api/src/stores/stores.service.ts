@@ -1,12 +1,15 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { Prisma } from '@kajai/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateStoreDto } from './dto/create-store.dto'
 import { UpdateStoreDto } from './dto/update-store.dto'
 import { AuditService } from '../audit/audit.service'
+import { mapProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
 
 @Injectable()
 export class StoresService {
+  private readonly logger = new Logger(StoresService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
@@ -41,38 +44,51 @@ export class StoresService {
   }
 
   async findAll(search?: string) {
-    return this.prisma.store.findMany({
-      where: search
-        ? {
-            name: {
-              contains: search,
-              mode: 'insensitive',
-            },
-          }
-        : undefined,
-      orderBy: {
-        name: 'asc',
-      },
-    })
+    try {
+      return await this.prisma.store.findMany({
+        where: search
+          ? {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            }
+          : undefined,
+        orderBy: {
+          name: 'asc',
+        },
+      })
+    } catch (error) {
+      this.logError('A boltok lekérése sikertelen.', error)
+      throw error
+    }
   }
 
   async findOne(id: string) {
-    const store = await this.prisma.store.findUnique({
-      where: { id },
-      include: {
-        products: {
-          include: {
-            foodItem: true,
+    try {
+      const store = await this.prisma.store.findUnique({
+        where: { id },
+        include: {
+          products: {
+            include: {
+              foodItem: true,
+            },
           },
         },
-      },
-    })
+      })
 
-    if (!store) {
-      throw new NotFoundException('Store nem található.')
+      if (!store) {
+        throw new NotFoundException('Store nem található.')
+      }
+
+      return {
+        ...store,
+        products: store.products.map(mapProductAvailabilityResponse),
+      }
+    } catch (error) {
+      this.logError(`A bolt lekérése sikertelen: ${id}`, error)
+      throw error
     }
-
-    return store
   }
 
   async update(id: string, dto: UpdateStoreDto, userId: string) {
@@ -112,6 +128,9 @@ export class StoresService {
 
     try {
       return await this.prisma.$transaction(async (tx) => {
+        await tx.store.delete({
+          where: { id },
+        })
 
         await this.auditService.logWithTx(tx, {
           tableName: 'stores',
@@ -130,5 +149,9 @@ export class StoresService {
 
       throw error
     }
+  }
+
+  private logError(message: string, error: unknown): void {
+    this.logger.error(message, error instanceof Error ? error.stack : String(error))
   }
 }

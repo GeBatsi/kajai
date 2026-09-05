@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server'
 import NextAuth from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 
-type Ctx = { params: Record<string, string | string[]> }
+type Ctx = { params: Promise<{ nextauth: string[] }> }
 
 const handlerPromise = getAuthOptions().then((opts) => NextAuth(opts))
 
