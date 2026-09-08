@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FoodItemType } from '@kajai/db'
 import type { FoodItem, Prisma } from '@kajai/db'
 import { FoodsService } from './foods.service'
@@ -12,6 +12,7 @@ import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequestUser } from '../auth/types/request-user.type'
 import type { ProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
+import { FileInterceptor } from '@nestjs/platform-express';
 
 type FoodItemWithDetails = Prisma.FoodItemGetPayload<{
   include: {
@@ -35,10 +36,11 @@ export class FoodsController {
   @Post()
   @UseGuards(DevAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  create(@Body() dto: CreateFoodDto, @CurrentUser() user: RequestUser): Promise<FoodItem> {
-    return this.foodsService.create(dto, user.id)
+  @UseInterceptors(FileInterceptor('image'))
+  create(@Body() dto: CreateFoodDto, @CurrentUser() user: RequestUser, @UploadedFile() image?: Express.Multer.File): Promise<FoodItem> {
+    return this.foodsService.create(dto, user.id, image)
   }
-
+ 
   @Get()
   findAll(
     @Query('search') search?: string,
