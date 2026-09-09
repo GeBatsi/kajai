@@ -19,9 +19,9 @@ export default function Header({
 
     const handleLogout = async () => {
         try {
-        const response = await fetch(`http://localhost:3001/api/auth/logout`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
             method: 'POST',
-            
+
         })
 
         if (!response.ok) {
@@ -38,29 +38,35 @@ export default function Header({
 
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
-      <div className="font-bold text-gray-900 flex w-20 gap-3 items-center">
-        <div>Kajai</div>
-        <img src="/Kajai.webp" alt="Kajai logó" className='text-sm font-extralight '/>
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
+      <div className="flex shrink-0 items-center gap-2 font-bold text-gray-900">
+        <span>Kajai</span>
+        <img src="/Kajai.webp" alt="Kajai logó" className="h-6 w-6" />
       </div>
-      {isLoading && <div className="h-9 w-24 animate-pulse rounded-lg bg-gray-200" />}
-      {!isLoading && (isLoggedIn ?  <span className="text-sm text-gray-700">
-              Ödvözlöm, <span className="font-semibold">{firstName}!</span>
-            </span>:""
-            )}
-      <div className='flex gap-2'>
-      {!isLoggedIn && <button   type="button" onClick={onRegisterClick} 
-      className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700">
-        Regisztráció
-      </button> }   
+      {isLoading && <div className="h-9 w-24 shrink-0 animate-pulse rounded-lg bg-gray-200" />}
+      {!isLoading && isLoggedIn && (
+        <span className="hidden min-w-0 truncate text-sm text-gray-700 sm:block">
+          Ödvözlöm, <span className="font-semibold">{firstName}!</span>
+        </span>
+      )}
+      <div className="flex shrink-0 gap-2">
+        {!isLoggedIn && (
+          <button
+            type="button"
+            onClick={onRegisterClick}
+            className="rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700 sm:px-5"
+          >
+            Regisztráció
+          </button>
+        )}
 
-      <button
-        type="button"
-        onClick={isLoggedIn? handleLogout : onLoginClick}
-        className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700"
-      >
-        {isLoggedIn ? "kijentkezés" : "Bejelentkezés"}
-      </button>
+        <button
+          type="button"
+          onClick={isLoggedIn ? handleLogout : onLoginClick}
+          className="rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700 sm:px-5"
+        >
+          {isLoggedIn ? 'kijentkezés' : 'Bejelentkezés'}
+        </button>
       </div>
     </header>
   )
