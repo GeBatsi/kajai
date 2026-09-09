@@ -17,10 +17,12 @@
     "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy --schema prisma/schema.prisma",
     "migrate:reset": "dotenv -e ../../.env -- prisma migrate reset --schema prisma/schema.prisma --force",
     "studio": "dotenv -e ../../.env -- prisma studio --schema prisma/schema.prisma",
+    "seed": "dotenv -e ../../.env -- node prisma/seed.cjs",
     "type-check": "tsc --noEmit",
     "prisma:validate": "dotenv -e ../../.env -- prisma validate --schema prisma/schema.prisma",
     "prisma": "dotenv -e ../../.env -- prisma --schema prisma/schema.prisma",
-    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev --schema prisma/schema.prisma"
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev --schema prisma/schema.prisma",
+    "build": "tsc"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0"
@@ -29,5 +31,13 @@
     "dotenv-cli": "^11.0.0",
     "prisma": "^5.22.0",
     "typescript": "^5.4.5"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }

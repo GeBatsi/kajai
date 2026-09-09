@@ -49,6 +49,11 @@ enum FavoriteType {
   PRODUCT
 }
 
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 // ─── User & Profile ───────────────────────────────────────────────────────────
 
 model User {
@@ -56,6 +61,8 @@ model User {
   email     String   @unique
   name      String?
   image     String?
+  password  String?
+  isVerified Boolean @default(false)
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -67,6 +74,8 @@ model User {
   inventoryItems InventoryItem[]
   favorites      Favorite[]
   recipes        Recipe[]
+
+  mailTokens MailToken[]
 
   @@map("users")
 }
@@ -327,4 +336,19 @@ model AuditLog {
   @@index([tableName, recordId])
   @@index([userId])
   @@map("audit_logs")
+}
+
+model MailToken {
+  id        String   @id @default(cuid())
+  mailToken String   @unique
+  createdAt DateTime @default(now())
+  type TokenType
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([mailToken])
+  @@index([userId])
+
+  @@map("mail_tokens")
 }

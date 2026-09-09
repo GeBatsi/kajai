@@ -2,15 +2,18 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { getMyProfile } from '@/lib/api'
 import { CalorieProgressBar } from '@/components/profile/calorie-progress-bar'
+import Header from '@/components/layout/Header'
 
 export default function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const isLoggedIn = status === 'authenticated'
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile'],
@@ -36,7 +39,8 @@ export default function HomePage() {
 
   if (!session) return null
 
-  return (
+  return (<>
+  <Header onLoginClick={() => setIsLoginModalOpen(!isLoggedIn)}/>
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50">
       <h1 className="text-4xl font-bold">KajAI</h1>
       <div className="flex flex-col items-center gap-2 text-center">
@@ -66,5 +70,6 @@ export default function HomePage() {
         </button>
       </div>
     </main>
+    </>
   )
 }
