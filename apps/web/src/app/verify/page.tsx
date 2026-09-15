@@ -3,6 +3,8 @@
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState,useRef } from 'react'
 import { signIn } from 'next-auth/react'
+import Link from "next/link";
+
 
 type VerifyState = 'loading' | 'success' | 'error'
 
@@ -114,12 +116,9 @@ function VerifyPageContent() {
             A megerősítő link érvénytelen vagy hiányzik.
           </p>
 
-          <a
-            href="/"
-            className="block w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
-          >
-            Vissza a főoldalra
-          </a>
+          <Link href="/" className="block w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800">
+                      Vissza a főoldalra
+          </Link>
         </div>
       </main>
     )
@@ -154,12 +153,12 @@ function VerifyPageContent() {
           Most már bejelentkezhetsz a fiókodba.
         </p>
 
-        <a
+        <Link
           href="/"
           className="block w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
         >
           Bejelentkezés
-        </a>
+        </Link>
       </div>
     </main>
   )

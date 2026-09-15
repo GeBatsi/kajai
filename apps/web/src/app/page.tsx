@@ -2,14 +2,14 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Header from '@/components/layout/Header'
 
 export default function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const isLoggedIn = status === 'authenticated'
+  // const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  // const isLoggedIn = status === 'authenticated'
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login')
@@ -26,7 +26,7 @@ export default function HomePage() {
   if (!session) return null
 
   return (<>
-  <Header onLoginClick={() => setIsLoginModalOpen(!isLoggedIn)}/>
+  <Header onLoginClick={() => {}}/>
     <main className="flex min-h-screen flex-col items-center justify-center gap-6">
       <h1 className="text-4xl font-bold">KajAI</h1>
       <div className="flex flex-col items-center gap-2 text-center">
