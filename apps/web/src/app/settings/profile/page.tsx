@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getMyProfile, updateMyProfile } from '@/lib/api'
 import { ACTIVITY_LEVEL_OPTIONS, GENDER_OPTIONS, GOAL_TYPE_OPTIONS } from '@/lib/profile-labels'
+import { MacroDonutChart } from '@/components/profile/macro-donut-chart'
 import type { ActivityLevel, GoalType } from '@kajai/types'
 
 const inputClass =
@@ -148,12 +149,20 @@ export default function ProfileSettingsPage() {
           </div>
 
           {mutation.isSuccess && mutation.data.dailyKcal && (
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <SummaryStat label="Napi kalóriakeret" value={`${mutation.data.dailyKcal} kcal`} />
-              <SummaryStat label="TDEE" value={`${mutation.data.tdeeKcal} kcal`} />
-              <SummaryStat label="Fehérje" value={`${mutation.data.proteinG} g`} />
-              <SummaryStat label="Szénhidrát" value={`${mutation.data.carbsG} g`} />
-              <SummaryStat label="Zsír" value={`${mutation.data.fatG} g`} />
+            <div className="mt-6 flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <SummaryStat label="Napi kalóriakeret" value={`${mutation.data.dailyKcal} kcal`} />
+                <SummaryStat label="TDEE" value={`${mutation.data.tdeeKcal} kcal`} />
+              </div>
+              {mutation.data.proteinG !== null &&
+                mutation.data.carbsG !== null &&
+                mutation.data.fatG !== null && (
+                  <MacroDonutChart
+                    proteinG={mutation.data.proteinG}
+                    carbsG={mutation.data.carbsG}
+                    fatG={mutation.data.fatG}
+                  />
+                )}
             </div>
           )}
           {mutation.isError && <p className="mt-4 text-sm text-red-600">Hiba történt a mentés közben.</p>}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { updateMyProfile } from '@/lib/api'
 import { ACTIVITY_LEVEL_OPTIONS, GENDER_OPTIONS, GOAL_TYPE_OPTIONS } from '@/lib/profile-labels'
+import { MacroDonutChart } from '@/components/profile/macro-donut-chart'
 import type { ActivityLevel, GoalType } from '@kajai/types'
 
 const STEP_TITLES = ['Alapadatok', 'Aktivitás szint', 'Cél', 'Összegzés']
@@ -155,13 +156,21 @@ export default function OnboardingPage() {
               <p className="text-sm text-red-600">Hiba történt a profil mentése közben. Próbáld újra.</p>
             )}
             {mutation.isSuccess && mutation.data.dailyKcal && (
-              <div className="grid grid-cols-2 gap-3">
-                <SummaryStat label="Napi kalóriakeret" value={`${mutation.data.dailyKcal} kcal`} />
-                <SummaryStat label="TDEE" value={`${mutation.data.tdeeKcal} kcal`} />
-                <SummaryStat label="Fehérje" value={`${mutation.data.proteinG} g`} />
-                <SummaryStat label="Szénhidrát" value={`${mutation.data.carbsG} g`} />
-                <SummaryStat label="Zsír" value={`${mutation.data.fatG} g`} />
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <SummaryStat label="Napi kalóriakeret" value={`${mutation.data.dailyKcal} kcal`} />
+                  <SummaryStat label="TDEE" value={`${mutation.data.tdeeKcal} kcal`} />
+                </div>
+                {mutation.data.proteinG !== null &&
+                  mutation.data.carbsG !== null &&
+                  mutation.data.fatG !== null && (
+                    <MacroDonutChart
+                      proteinG={mutation.data.proteinG}
+                      carbsG={mutation.data.carbsG}
+                      fatG={mutation.data.fatG}
+                    />
+                  )}
+              </>
             )}
           </div>
         )}
