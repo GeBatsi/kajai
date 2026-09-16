@@ -1,5 +1,6 @@
-import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator'
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator'
 import { ActivityLevel, GoalType } from '@kajai/db'
+import { IsNotFutureDate } from './validators/is-not-future-date.validator'
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -8,6 +9,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsDateString()
+  @IsNotFutureDate()
   dateOfBirth?: string
 
   @IsOptional()
@@ -23,6 +25,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  @Max(100)
   bodyFatPct?: number
 
   @IsOptional()

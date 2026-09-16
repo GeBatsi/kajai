@@ -3,13 +3,16 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getMyProfile, updateMyProfile } from '@/lib/api'
+import { getApiErrorMessage, getMyProfile, updateMyProfile } from '@/lib/api'
 import { ACTIVITY_LEVEL_OPTIONS, GENDER_OPTIONS, GOAL_TYPE_OPTIONS } from '@/lib/profile-labels'
 import type { ActivityLevel, GoalType } from '@kajai/types'
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
 const selectClass = inputClass + ' bg-white'
+const errorInputClass = 'border-red-400 focus:border-red-500'
+
+const todayStr = new Date().toISOString().slice(0, 10)
 
 export default function ProfileSettingsPage() {
   const queryClient = useQueryClient()
@@ -22,6 +25,8 @@ export default function ProfileSettingsPage() {
   const [bodyFatPct, setBodyFatPct] = useState('')
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('SEDENTARY')
   const [goalType, setGoalType] = useState<GoalType>('MAINTENANCE')
+
+  const [fieldErrors, setFieldErrors] = useState<{ dateOfBirth?: string; bodyFatPct?: string }>({})
 
   useEffect(() => {
     if (!profile) return
@@ -45,8 +50,28 @@ export default function ProfileSettingsPage() {
         activityLevel,
         goalType,
       }),
-    onSuccess: (updated) => queryClient.setQueryData(['profile'], updated),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['profile'], updated)
+      setFieldErrors({})
+    },
   })
+
+  function validate(): boolean {
+    const errors: typeof fieldErrors = {}
+    if (dateOfBirth && dateOfBirth > todayStr) {
+      errors.dateOfBirth = 'A születési dátum nem lehet jövőbeli.'
+    }
+    if (bodyFatPct && (Number(bodyFatPct) < 0 || Number(bodyFatPct) > 100)) {
+      errors.bodyFatPct = 'A testzsír %-nak 0 és 100 között kell lennie.'
+    }
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  function handleSave() {
+    if (!validate()) return
+    mutation.mutate()
+  }
 
   if (isLoading) {
     return (
@@ -82,15 +107,21 @@ export default function ProfileSettingsPage() {
               <input
                 type="date"
                 value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
-                className={inputClass}
+                max={todayStr}
+                onChange={(e) => {
+                  setDateOfBirth(e.target.value)
+                  setFieldErrors((prev) => ({ ...prev, dateOfBirth: undefined }))
+                }}
+                className={`${inputClass} ${fieldErrors.dateOfBirth ? errorInputClass : ''}`}
               />
+              {fieldErrors.dateOfBirth && <span className="text-xs text-red-600">{fieldErrors.dateOfBirth}</span>}
             </label>
             <div className="grid grid-cols-2 gap-4">
               <label className="flex flex-col gap-1 text-sm text-gray-600">
                 Magasság (cm)
                 <input
                   type="number"
+                  min={0}
                   value={heightCm}
                   onChange={(e) => setHeightCm(e.target.value)}
                   className={inputClass}
@@ -100,6 +131,7 @@ export default function ProfileSettingsPage() {
                 Testtömeg (kg)
                 <input
                   type="number"
+                  min={0}
                   value={weightKg}
                   onChange={(e) => setWeightKg(e.target.value)}
                   className={inputClass}
@@ -110,10 +142,16 @@ export default function ProfileSettingsPage() {
               Testzsír % (opcionális)
               <input
                 type="number"
+                min={0}
+                max={100}
                 value={bodyFatPct}
-                onChange={(e) => setBodyFatPct(e.target.value)}
-                className={inputClass}
+                onChange={(e) => {
+                  setBodyFatPct(e.target.value)
+                  setFieldErrors((prev) => ({ ...prev, bodyFatPct: undefined }))
+                }}
+                className={`${inputClass} ${fieldErrors.bodyFatPct ? errorInputClass : ''}`}
               />
+              {fieldErrors.bodyFatPct && <span className="text-xs text-red-600">{fieldErrors.bodyFatPct}</span>}
             </label>
 
             <label className="flex flex-col gap-1 text-sm text-gray-600">
@@ -156,11 +194,15 @@ export default function ProfileSettingsPage() {
               <SummaryStat label="Zsír" value={`${mutation.data.fatG} g`} />
             </div>
           )}
-          {mutation.isError && <p className="mt-4 text-sm text-red-600">Hiba történt a mentés közben.</p>}
+          {mutation.isError && (
+            <p className="mt-4 text-sm text-red-600">
+              {getApiErrorMessage(mutation.error, 'Hiba történt a mentés közben.')}
+            </p>
+          )}
 
           <button
             type="button"
-            onClick={() => mutation.mutate()}
+            onClick={handleSave}
             disabled={mutation.isPending}
             className="mt-6 w-full rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
           >

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { updateMyProfile } from '@/lib/api'
+import { getApiErrorMessage, updateMyProfile } from '@/lib/api'
 import { ACTIVITY_LEVEL_OPTIONS, GENDER_OPTIONS, GOAL_TYPE_OPTIONS } from '@/lib/profile-labels'
 import type { ActivityLevel, GoalType } from '@kajai/types'
 
@@ -11,6 +11,9 @@ const STEP_TITLES = ['Alapadatok', 'Aktivitás szint', 'Cél', 'Összegzés']
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
+const errorInputClass = 'border-red-400 focus:border-red-500'
+
+const todayStr = new Date().toISOString().slice(0, 10)
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -37,7 +40,8 @@ export default function OnboardingPage() {
     onSuccess: (updated) => queryClient.setQueryData(['profile'], updated),
   })
 
-  const step1Valid = gender && dateOfBirth && heightCm && weightKg
+  const isFutureDate = Boolean(dateOfBirth && dateOfBirth > todayStr)
+  const step1Valid = Boolean(gender && dateOfBirth && heightCm && weightKg && !isFutureDate)
 
   function goNext() {
     const next = step + 1
@@ -81,14 +85,19 @@ export default function OnboardingPage() {
               <input
                 type="date"
                 value={dateOfBirth}
+                max={todayStr}
                 onChange={(e) => setDateOfBirth(e.target.value)}
-                className={inputClass}
+                className={`${inputClass} ${isFutureDate ? errorInputClass : ''}`}
               />
+              {isFutureDate && (
+                <span className="text-xs text-red-600">A születési dátum nem lehet jövőbeli.</span>
+              )}
             </label>
             <label className="flex flex-col gap-1 text-sm text-gray-600">
               Magasság (cm)
               <input
                 type="number"
+                min={0}
                 value={heightCm}
                 onChange={(e) => setHeightCm(e.target.value)}
                 className={inputClass}
@@ -98,6 +107,7 @@ export default function OnboardingPage() {
               Testtömeg (kg)
               <input
                 type="number"
+                min={0}
                 value={weightKg}
                 onChange={(e) => setWeightKg(e.target.value)}
                 className={inputClass}
@@ -152,7 +162,9 @@ export default function OnboardingPage() {
           <div className="flex flex-col gap-4">
             {mutation.isPending && <p className="text-sm text-gray-500">Számítás folyamatban...</p>}
             {mutation.isError && (
-              <p className="text-sm text-red-600">Hiba történt a profil mentése közben. Próbáld újra.</p>
+              <p className="text-sm text-red-600">
+                {getApiErrorMessage(mutation.error, 'Hiba történt a profil mentése közben. Próbáld újra.')}
+              </p>
             )}
             {mutation.isSuccess && mutation.data.dailyKcal && (
               <div className="grid grid-cols-2 gap-3">
