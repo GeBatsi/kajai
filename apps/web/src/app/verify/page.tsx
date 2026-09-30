@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Suspense, useEffect, useState,useRef } from 'react'
 import { signIn } from 'next-auth/react'
 
+
 type VerifyState = 'loading' | 'success' | 'error'
 
 function VerifyPageContent() {

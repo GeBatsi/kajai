@@ -33,12 +33,21 @@ const GOAL_KCAL_ADJUSTMENT: Record<GoalType, number> = {
   RECOMPOSITION: -200,
 }
 
-// Makróarányok célonként (fehérje / szénhidrát / zsír – a napi kalória %-ában)
-const GOAL_MACRO_RATIOS: Record<GoalType, { protein: number; carbs: number; fat: number }> = {
-  WEIGHT_LOSS: { protein: 0.35, carbs: 0.35, fat: 0.3 },
-  MUSCLE_GAIN: { protein: 0.3, carbs: 0.45, fat: 0.25 },
-  MAINTENANCE: { protein: 0.25, carbs: 0.45, fat: 0.3 },
-  RECOMPOSITION: { protein: 0.35, carbs: 0.35, fat: 0.3 },
+// Fehérjeszükséglet testtömeg-kilogrammonként (g/ttkg) – sporttáplálkozási ökölszabály.
+// Deficit esetén magasabb, hogy izomvesztés nélkül lehessen fogyni.
+const GOAL_PROTEIN_G_PER_KG: Record<GoalType, number> = {
+  WEIGHT_LOSS: 2.2,
+  MUSCLE_GAIN: 1.8,
+  MAINTENANCE: 1.6,
+  RECOMPOSITION: 2.2,
+}
+
+// Zsír a napi kalória %-ában (a fennmaradó kalória szénhidrátra megy).
+const GOAL_FAT_PCT_OF_KCAL: Record<GoalType, number> = {
+  WEIGHT_LOSS: 0.25,
+  MUSCLE_GAIN: 0.25,
+  MAINTENANCE: 0.3,
+  RECOMPOSITION: 0.25,
 }
 
 export function calculateAge(dateOfBirth: Date): number {
@@ -48,7 +57,9 @@ export function calculateAge(dateOfBirth: Date): number {
   if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dateOfBirth.getDate())) {
     age--
   }
-  return age
+  // Védelem jövőbeli/hibás dátum ellen – a DTO validáció ezt normál esetben
+  // már kiszűri, de a BMR-t így sem torzíthatja el egy negatív kor.
+  return Math.max(0, age)
 }
 
 // Mifflin-St Jeor BMR képlet
@@ -73,13 +84,25 @@ export function calculateNutritionTargets(profile: ProfileInput): NutritionTarge
   const tdeeKcal = bmr * ACTIVITY_MULTIPLIERS[profile.activityLevel]
 
   const dailyKcal = Math.max(1200, tdeeKcal + GOAL_KCAL_ADJUSTMENT[profile.goalType])
-  const ratios = GOAL_MACRO_RATIOS[profile.goalType]
+
+  // Fehérje: testtömeg-arányos (nem a kalóriakeret %-a), így nem torzul el
+  // magasabb testsúlynál vagy nagyobb kalóriakeretnél.
+  const proteinG = profile.weightKg! * GOAL_PROTEIN_G_PER_KG[profile.goalType]
+  const proteinKcal = proteinG * 4
+
+  const fatKcal = dailyKcal * GOAL_FAT_PCT_OF_KCAL[profile.goalType]
+  const fatG = fatKcal / 9
+
+  // A maradék kalória szénhidrátra megy – sosem negatív, ha a fehérje+zsír
+  // kivételesen meghaladná a napi keretet.
+  const carbsKcal = Math.max(0, dailyKcal - proteinKcal - fatKcal)
+  const carbsG = carbsKcal / 4
 
   return {
     tdeeKcal: Math.round(tdeeKcal),
     dailyKcal: Math.round(dailyKcal),
-    proteinG: Math.round((dailyKcal * ratios.protein) / 4),
-    carbsG: Math.round((dailyKcal * ratios.carbs) / 4),
-    fatG: Math.round((dailyKcal * ratios.fat) / 9),
+    proteinG: Math.round(proteinG),
+    carbsG: Math.round(carbsG),
+    fatG: Math.round(fatG),
   }
 }

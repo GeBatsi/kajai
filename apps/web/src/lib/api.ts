@@ -1,6 +1,17 @@
 import axios from 'axios'
 import type { ActivityLevel, GoalType, UserProfile } from '@kajai/types'
 
+// A NestJS ValidationPipe egy string[]-t ad vissza `message` mezőben,
+// egyéb hibáknál (pl. 500) egyetlen stringet – ezt egységesítjük a UI számára.
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const message = error.response?.data?.message
+    if (Array.isArray(message)) return message.join(' ')
+    if (typeof message === 'string') return message
+  }
+  return fallback
+}
+
 export const apiClient = axios.create({
   baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api`,
   withCredentials: true,
