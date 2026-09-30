@@ -149,11 +149,14 @@ export class UsersService {
     const existing = await this.prisma.userProfile.findUnique({ where: { userId } })
     if (!existing) throw new NotFoundException('Profil nem található')
 
+    const mergedBodyFatPct = dto.bodyFatPct ?? existing.bodyFatPct
+
     const merged: ProfileInput = {
       gender: dto.gender ?? existing.gender,
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : existing.dateOfBirth,
       heightCm: dto.heightCm ?? existing.heightCm,
       weightKg: dto.weightKg ?? existing.weightKg,
+      bodyFatPct: mergedBodyFatPct,
       activityLevel: dto.activityLevel ?? existing.activityLevel,
       goalType: dto.goalType ?? existing.goalType,
     }
@@ -166,7 +169,7 @@ export class UsersService {
         dateOfBirth: merged.dateOfBirth,
         heightCm: merged.heightCm,
         weightKg: merged.weightKg,
-        bodyFatPct: dto.bodyFatPct ?? existing.bodyFatPct,
+        bodyFatPct: mergedBodyFatPct,
         activityLevel: merged.activityLevel,
         goalType: merged.goalType,
         tdeeKcal: targets?.tdeeKcal ?? null,
