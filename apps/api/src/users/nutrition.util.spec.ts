@@ -129,7 +129,8 @@ describe('calculateNutritionTargets', () => {
       baseProfile({ dateOfBirth: new Date(new Date().getFullYear() - 31, 0, 1) }),
     )
     expect(result?.tdeeKcal).toBe(2751)
-    expect(result?.dailyKcal).toBe(2751) // MAINTENANCE: nincs eltolás
+    // MAINTENANCE: nincs eltolás; a keret a kerekített makrókból jön: 128*4 + 353*4 + 92*9
+    expect(result?.dailyKcal).toBe(2752)
     expect(result?.proteinG).toBe(128) // 80kg * 1.6 g/ttkg
     expect(result?.fatG).toBe(92) // 2751 * 0.3 / 9
     expect(result?.carbsG).toBe(353) // a maradék kalóriából
@@ -155,7 +156,9 @@ describe('calculateNutritionTargets', () => {
     ['RECOMPOSITION', -200],
   ] as const)('shifts dailyKcal by the %s goal adjustment (%d kcal) relative to TDEE', (goalType, adjustment) => {
     const result = calculateNutritionTargets(baseProfile({ goalType }))
-    expect(result?.dailyKcal).toBe(Math.max(1200, (result?.tdeeKcal ?? 0) + adjustment))
+    // A keret a kerekített makrókból számolódik vissza, ezért legfeljebb 2 kcal-lal térhet el.
+    const target = Math.max(1200, (result?.tdeeKcal ?? 0) + adjustment)
+    expect(Math.abs((result?.dailyKcal ?? 0) - target)).toBeLessThanOrEqual(2)
   })
 
   it('never lets dailyKcal drop below the 1200 kcal safety floor', () => {
@@ -168,7 +171,8 @@ describe('calculateNutritionTargets', () => {
         goalType: 'WEIGHT_LOSS',
       }),
     )
-    expect(result?.dailyKcal).toBe(1200)
+    // A padló a célértékre vonatkozik; a makrókból visszaszámolt keret ettől max. 2 kcal-lal tér el.
+    expect(Math.abs((result?.dailyKcal ?? 0) - 1200)).toBeLessThanOrEqual(2)
   })
 
   it.each([
@@ -180,6 +184,16 @@ describe('calculateNutritionTargets', () => {
     const result = calculateNutritionTargets(baseProfile({ goalType, weightKg: 80 }))
     expect(result?.proteinG).toBe(Math.round(80 * gPerKg))
   })
+
+  it.each(['WEIGHT_LOSS', 'MUSCLE_GAIN', 'MAINTENANCE', 'RECOMPOSITION'] as const)(
+    'reports a dailyKcal that equals the kcal of the rounded macros for the %s goal',
+    (goalType) => {
+      for (const weightKg of [48, 63.5, 80, 97, 121]) {
+        const result = calculateNutritionTargets(baseProfile({ goalType, weightKg }))
+        expect(result?.dailyKcal).toBe(result!.proteinG * 4 + result!.carbsG * 4 + result!.fatG * 9)
+      }
+    },
+  )
 
   it('never returns a negative carbsG even if protein+fat would exceed dailyKcal', () => {
     // Nagyon nehéz testű, magas fehérjeigényű cél + alacsony kalóriakeret-hajlam,
