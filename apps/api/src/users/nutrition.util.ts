@@ -5,11 +5,15 @@ export interface ProfileInput {
   dateOfBirth: Date | null
   heightCm: number | null
   weightKg: number | null
+  bodyFatPct: number | null
   activityLevel: ActivityLevel
   goalType: GoalType
 }
 
+export type BmrFormula = 'MIFFLIN_ST_JEOR' | 'KATCH_MCARDLE'
+
 export interface NutritionTargets {
+  bmrFormula: BmrFormula
   tdeeKcal: number
   dailyKcal: number
   proteinG: number
@@ -62,14 +66,45 @@ export function calculateAge(dateOfBirth: Date): number {
   return Math.max(0, age)
 }
 
-// Mifflin-St Jeor BMR képlet
-function calculateBMR(gender: string | null, weightKg: number, heightCm: number, age: number): number {
+// Mifflin-St Jeor BMR képlet – ez a fallback, ha nincs megadva testzsír %.
+export function calculateBMRMifflinStJeor(
+  gender: string | null,
+  weightKg: number,
+  heightCm: number,
+  age: number,
+): number {
   const base = 10 * weightKg + 6.25 * heightCm - 5 * age
   const normalizedGender = gender?.toLowerCase()
   if (normalizedGender === 'male' || normalizedGender === 'férfi') return base + 5
   if (normalizedGender === 'female' || normalizedGender === 'nő') return base - 161
   // Ismeretlen/egyéb nem esetén a két képlet átlaga
   return base - 78
+}
+
+// Katch-McArdle BMR képlet – pontosabb, ha ismert a testzsír %, mert a
+// sovány testtömegből (LBM) indul ki, nem a nem/kor becslésből.
+export function calculateBMRKatchMcArdle(weightKg: number, bodyFatPct: number): number {
+  const leanBodyMassKg = weightKg * (1 - bodyFatPct / 100)
+  return 370 + 21.6 * leanBodyMassKg
+}
+
+function calculateBMR(profile: {
+  gender: string | null
+  weightKg: number
+  heightCm: number
+  age: number
+  bodyFatPct: number | null
+}): { value: number; formula: BmrFormula } {
+  if (profile.bodyFatPct !== null) {
+    return {
+      value: calculateBMRKatchMcArdle(profile.weightKg, profile.bodyFatPct),
+      formula: 'KATCH_MCARDLE',
+    }
+  }
+  return {
+    value: calculateBMRMifflinStJeor(profile.gender, profile.weightKg, profile.heightCm, profile.age),
+    formula: 'MIFFLIN_ST_JEOR',
+  }
 }
 
 export function hasRequiredProfileData(profile: ProfileInput): boolean {
@@ -80,8 +115,14 @@ export function calculateNutritionTargets(profile: ProfileInput): NutritionTarge
   if (!hasRequiredProfileData(profile)) return null
 
   const age = calculateAge(profile.dateOfBirth!)
-  const bmr = calculateBMR(profile.gender, profile.weightKg!, profile.heightCm!, age)
-  const tdeeKcal = bmr * ACTIVITY_MULTIPLIERS[profile.activityLevel]
+  const bmr = calculateBMR({
+    gender: profile.gender,
+    weightKg: profile.weightKg!,
+    heightCm: profile.heightCm!,
+    age,
+    bodyFatPct: profile.bodyFatPct,
+  })
+  const tdeeKcal = bmr.value * ACTIVITY_MULTIPLIERS[profile.activityLevel]
 
   const targetKcal = Math.max(1200, tdeeKcal + GOAL_KCAL_ADJUSTMENT[profile.goalType])
 
@@ -100,6 +141,7 @@ export function calculateNutritionTargets(profile: ProfileInput): NutritionTarge
   const dailyKcal = proteinG * 4 + carbsG * 4 + fatG * 9
 
   return {
+    bmrFormula: bmr.formula,
     tdeeKcal: Math.round(tdeeKcal),
     dailyKcal,
     proteinG,
