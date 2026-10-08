@@ -55,6 +55,48 @@ async sendNewPasswordEmail(email:string,mailToken:string){
   });
 }
 
+async sendChangePasswordEmail(email: string, mailToken: string ) {
+  const location = `${process.env.NEXTAUTH_URL ?? 'http://localhost:3000'}/change_password?token=`
+  await this.mailer.sendMail({
+    from: 'noreply@kajai.hu',
+    to: email,
+
+    subject: 'Jelszó módosítása',
+
+    html: `
+      <h2>Jelszó módosítása</h2>
+
+      <p>
+        Jelszó módosítását kezdeményezted a KajAi felületén.
+      </p>
+
+      <p>
+        A jelszó módosításához kattints az alábbi linkre:
+      </p>
+
+      <p>
+        <a href="${location}${mailToken}">
+          Jelszó módosítása
+        </a>
+      </p>
+
+      <p>
+        A link 1 órán keresztül érvényes.
+      </p>
+
+      <p>
+        Ha nem te kezdeményezted ezt a műveletet,
+        nincs további teendőd.
+      </p>
+
+      <p>
+        Üdvözlettel<br>
+        KajAi
+      </p>
+    `,
+  })
+}
+
 /*async sendVerificationEmail(email: string) {
   console.log(`Verification email would be sent to: ${email}`);
   return true;

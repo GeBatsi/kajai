@@ -7,8 +7,8 @@ import * as bcrypt from 'bcrypt';
 import crypto from "crypto";
 import { MailTokenService } from '../mail-token/mail-token.service';
 import { NotFoundException } from '@nestjs/common'
-import { PrismaService } from '../prisma/prisma.service'
-import {TokenService} from '../token/token.service'
+// import { PrismaService } from '../prisma/prisma.service'
+import { TokenService } from '../token/token.service'
 import { UpdateUserDto } from '../users/dto/update-user.dto';
 
 export interface AuthUser {
@@ -25,7 +25,7 @@ constructor(
  // private jwtService:JwtService,
  private mailService:MailService,
  private mailTokenService:MailTokenService,
- private readonly prisma: PrismaService,
+ // private readonly prisma: PrismaService,
  private tokenService:TokenService,
 ){}
 
@@ -113,7 +113,7 @@ return {
   }
 
   const result = await this.usersService.verifyEmail(token)
-  console.log("eredmény::: ",result)
+  // console.log("eredmény::: ",result)
   if(!result) {
     throw new UnauthorizedException('sikertelen email validáció.')
   }
@@ -162,4 +162,101 @@ async resetPassword(email:string, password:string, token:string){
 } catch {throw new ConflictException("Sikertelen jelszó módosítás")}
 return {message:'Jelszómódosítás sikeres'}
 }
+
+async changePassword( token: string, currentPassword: string, newPassword: string) {
+  try {
+    const mailToken = await this.mailTokenService.findByToken(token);
+
+    if (!mailToken) {
+      throw new UnauthorizedException(
+        'Érvénytelen vagy lejárt jelszómódosító link.',
+      );
+    }
+/*
+    if (mailToken.type !== 'PASSWORD_RESET') {
+      throw new UnauthorizedException(
+        'Érvénytelen jelszómódosító token.',
+      );
+    }
+*/
+
+    const tokenAge = Date.now() - mailToken.createdAt.getTime();
+    const experied = 24 * 3600 * 1000; // 1 nap érvényesség
+
+    if (tokenAge > experied) {
+      await this.mailTokenService.delete(mailToken.id);
+
+      throw new UnauthorizedException(
+        'A jelszómódosító link lejárt.',
+      );
+    }
+
+    const user = mailToken.user;
+
+    if (!user) {
+      throw new UnauthorizedException( 'A felhasználó nem található.' );
+    }
+
+    if (!user.password) {
+      throw new UnauthorizedException( 'Google felhasznlók jelszava itt nem módosítható' );
+    }
+
+    const currentPasswordValid = await bcrypt.compare( currentPassword, user.password );
+
+    if (!currentPasswordValid) {
+      throw new UnauthorizedException( 'A jelenlegi jelszó hibás.' );
+    }
+
+    const samePassword = await bcrypt.compare( newPassword, user.password );
+
+    if (samePassword) { 
+      throw new ConflictException( 'Az új jelszó nem lehet azonos a jelenlegi jelszóval.' ); 
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    const data: UpdateUserDto = { password: passwordHash };
+
+    await this.usersService.update( user.id, data );
+
+    await this.mailTokenService.delete( mailToken.id );
+
+    return { message: 'Jelszómódosítás sikeres' };
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+      throw new ConflictException( 'Sikertelen jelszómódosítás' );
+   }
+  }
+
+  async requestPasswordChange(userId: string) {
+    const user = await this.usersService.findOne(userId)
+
+    if (!user) { throw new NotFoundException( 'Felhasználó nem található' ) }
+
+    if (user.password === null) {
+      throw new ConflictException( 'Google-fiókkal bejelentkező felhasználó jelszava itt nem módosítható' )
+    }
+
+    try {
+      await this.mailTokenService.deleteAllPasswordResetTokens( user.id )
+
+      const mailToken = crypto.randomBytes(32).toString('base64url')
+
+      await this.mailTokenService.create( user.id, mailToken, 'PASSWORD_RESET' )
+
+      await this.mailService.sendChangePasswordEmail( user.email, mailToken )
+
+      return {
+        message: 'A jelszómódosításhoz szükséges emailt elküldtük.',
+      }
+      } catch (error) {
+        console.error( 'Password change email error:', error)
+        throw new BadGatewayException('A jelszómódosító email küldése sikertelen.')
+    }
+  }
 }

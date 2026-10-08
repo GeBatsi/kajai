@@ -186,12 +186,14 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           })
           token.userId = dbUser.id
           token.role = dbUser.role
+          token.loginProvider = account.provider
         }
         return token
       },
       async session({ session, token }) {
         session.user.id = token.userId as string
         session.user.role = token.role as string
+        session.user.loginProvider = token.loginProvider as string
         return session
       },
     },
