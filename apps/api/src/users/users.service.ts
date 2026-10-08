@@ -1,11 +1,12 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailTokenService } from '../mail-token/mail-token.service';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { CreateUserDto } from './dto/create-user.dto'
+import { UpdateUserDto } from './dto/update-user.dto'
+import { UpdateProfileDto } from './dto/update-profile.dto'
+import { PrismaService } from '../prisma/prisma.service'
+import { MailTokenService } from '../mail-token/mail-token.service'
 import { Prisma } from '@kajai/db'
-import {TokenService} from '../token/token.service'
-
+import { TokenService } from '../token/token.service'
+import { calculateNutritionTargets, type ProfileInput } from './nutrition.util'
 
 @Injectable()
 export class UsersService {
@@ -13,7 +14,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private mailTokenService: MailTokenService,
-    private tokenService:TokenService
+    private tokenService: TokenService
   ) {}
 
  async create(dto: CreateUserDto) {
@@ -83,7 +84,7 @@ export class UsersService {
  };
 
  async verifyEmail(mailToken:string){
-  
+
   const uToken=await this.mailTokenService.findByToken(mailToken);
   if(!uToken) throw new NotFoundException("Nincs ilyem validálható felhasználó");
   const data:UpdateUserDto={
@@ -138,5 +139,42 @@ export class UsersService {
     return user
   }
 
-}
+  async getProfile(userId: string) {
+    const profile = await this.prisma.userProfile.findUnique({ where: { userId } })
+    if (!profile) throw new NotFoundException('Profil nem található')
+    return profile
+  }
 
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const existing = await this.prisma.userProfile.findUnique({ where: { userId } })
+    if (!existing) throw new NotFoundException('Profil nem található')
+
+    const merged: ProfileInput = {
+      gender: dto.gender ?? existing.gender,
+      dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : existing.dateOfBirth,
+      heightCm: dto.heightCm ?? existing.heightCm,
+      weightKg: dto.weightKg ?? existing.weightKg,
+      activityLevel: dto.activityLevel ?? existing.activityLevel,
+      goalType: dto.goalType ?? existing.goalType,
+    }
+    const targets = calculateNutritionTargets(merged)
+
+    return this.prisma.userProfile.update({
+      where: { userId },
+      data: {
+        gender: merged.gender,
+        dateOfBirth: merged.dateOfBirth,
+        heightCm: merged.heightCm,
+        weightKg: merged.weightKg,
+        bodyFatPct: dto.bodyFatPct ?? existing.bodyFatPct,
+        activityLevel: merged.activityLevel,
+        goalType: merged.goalType,
+        tdeeKcal: targets?.tdeeKcal ?? null,
+        dailyKcal: targets?.dailyKcal ?? null,
+        proteinG: targets?.proteinG ?? null,
+        carbsG: targets?.carbsG ?? null,
+        fatG: targets?.fatG ?? null,
+      },
+    })
+  }
+}
