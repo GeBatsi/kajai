@@ -124,27 +124,28 @@ export function calculateNutritionTargets(profile: ProfileInput): NutritionTarge
   })
   const tdeeKcal = bmr.value * ACTIVITY_MULTIPLIERS[profile.activityLevel]
 
-  const dailyKcal = Math.max(1200, tdeeKcal + GOAL_KCAL_ADJUSTMENT[profile.goalType])
+  const targetKcal = Math.max(1200, tdeeKcal + GOAL_KCAL_ADJUSTMENT[profile.goalType])
 
   // Fehérje: testtömeg-arányos (nem a kalóriakeret %-a), így nem torzul el
   // magasabb testsúlynál vagy nagyobb kalóriakeretnél.
-  const proteinG = profile.weightKg! * GOAL_PROTEIN_G_PER_KG[profile.goalType]
-  const proteinKcal = proteinG * 4
-
-  const fatKcal = dailyKcal * GOAL_FAT_PCT_OF_KCAL[profile.goalType]
-  const fatG = fatKcal / 9
+  const proteinG = Math.round(profile.weightKg! * GOAL_PROTEIN_G_PER_KG[profile.goalType])
+  const fatG = Math.round((targetKcal * GOAL_FAT_PCT_OF_KCAL[profile.goalType]) / 9)
 
   // A maradék kalória szénhidrátra megy – sosem negatív, ha a fehérje+zsír
   // kivételesen meghaladná a napi keretet.
-  const carbsKcal = Math.max(0, dailyKcal - proteinKcal - fatKcal)
-  const carbsG = carbsKcal / 4
+  const carbsG = Math.round(Math.max(0, targetKcal - proteinG * 4 - fatG * 9) / 4)
+
+  // A megjelenített napi keret az egész grammra kerekített makrókból számolódik
+  // vissza, hogy a felhasználónál mindig kijöjjön a matek (4/4/9 kcal/g). Emiatt
+  // néhány kcal-lal eltérhet a TDEE + cél szerinti eltolás pontos értékétől.
+  const dailyKcal = proteinG * 4 + carbsG * 4 + fatG * 9
 
   return {
     bmrFormula: bmr.formula,
     tdeeKcal: Math.round(tdeeKcal),
-    dailyKcal: Math.round(dailyKcal),
-    proteinG: Math.round(proteinG),
-    carbsG: Math.round(carbsG),
-    fatG: Math.round(fatG),
+    dailyKcal,
+    proteinG,
+    carbsG,
+    fatG,
   }
 }
