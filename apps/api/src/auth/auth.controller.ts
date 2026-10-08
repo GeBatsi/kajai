@@ -8,6 +8,7 @@ import { LoginDto } from './dto/login.dto';
 import { verifyEmail } from './dto/verify.dto'
 import { ForgotPasswordDto } from './dto/forgotPassword.dto'
 import { ResetPasswordDto } from './dto/ResetPassword.dto'
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -50,5 +51,18 @@ verify(@Query() dto:verifyEmail) {
   @Post('resetpassword')
   resetpassword(@Body() dto:ResetPasswordDto){
     return this.authService.resetPassword(dto.email, dto.password, dto.token)
+  }
+
+  @Post('changepassword')
+  changePassword(@Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(dto.token, dto.currentPassword, dto.newPassword);
+  }
+
+  @Post('request-password-change')
+  @UseGuards(NextAuthGuard)
+  requestPasswordChange(
+  @CurrentUser() user: AuthUser,
+  ) {
+    return this.authService.requestPasswordChange( user.id )
   }
 }

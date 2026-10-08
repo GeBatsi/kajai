@@ -1,5 +1,6 @@
 'use client'
 import { signOut, useSession } from 'next-auth/react'
+import ProfileMenu from './ProfileMenu'
 
 interface HeaderProps {
   onLoginClick: () => void,
@@ -19,10 +20,8 @@ export default function Header({
 
     const handleLogout = async () => {
         try {
-        const response = await fetch(`http://localhost:3001/api/auth/logout`, {
-            method: 'POST',
-            
-        })
+        const backendUrl=process.env.NEXT_PUBLIC_API_URL ?? `http://localhost:3001`;
+        const response = await fetch(`${backendUrl}/api/auth/logout`, { method: 'POST' })
 
         if (!response.ok) {
             throw new Error('Kijelentkezés sikertelen')
@@ -43,7 +42,7 @@ export default function Header({
         <div>Kajai</div>
         <img src="/Kajai.webp" alt="Kajai logó" className='text-sm font-extralight '/>
       </div>
-      {isLoading && <div className="h-9 w-24 animate-pulse rounded-lg bg-gray-200" />}
+      {isLoading && <div className="h-9 w-24 animate-pulse rounded-lg bg-gray-200" >Töltés...</div>}
       {!isLoading && (isLoggedIn ?  <span className="text-sm text-gray-700">
               Ödvözlöm, <span className="font-semibold">{firstName}!</span>
             </span>:""
@@ -54,13 +53,17 @@ export default function Header({
         Regisztráció
       </button> }   
 
-      <button
-        type="button"
-        onClick={isLoggedIn? handleLogout : onLoginClick}
-        className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700"
-      >
-        {isLoggedIn ? "kijentkezés" : "Bejelentkezés"}
-      </button>
+      {isLoggedIn ? (
+  <ProfileMenu />
+    ) : (
+    <button
+      type="button"
+      onClick={onLoginClick}
+      className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700"
+    >
+      Bejelentkezés
+    </button>
+)}
       </div>
     </header>
   )

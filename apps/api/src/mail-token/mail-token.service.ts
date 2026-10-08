@@ -38,7 +38,13 @@ export class MailTokenService {
     });
   }
 
-  createPasswordToken(){
-    
-  }
+  deleteAllPasswordResetTokens(userId: string) {
+  return this.prisma.mailToken.deleteMany({
+    where: {
+      userId,
+      type: 'PASSWORD_RESET',
+    },
+  })
+}
+
 }
