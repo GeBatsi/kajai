@@ -26,6 +26,8 @@ export class FoodsService {
   async create(dto: CreateFoodDto, userId: string, image?: Express.Multer.File) {
     const nutrition = typeof dto.nutrition === 'string' ? JSON.parse(dto.nutrition) : dto.nutrition
 
+    this.validateNutrition(nutrition)
+
     const allergens = typeof dto.allergens === 'string' ? JSON.parse(dto.allergens) : dto.allergens
 
     let uploadedImageUrl: string | undefined
@@ -118,7 +120,7 @@ export class FoodsService {
         take: 50,
       })
     } catch (error) {
-      this.logError('A food itemek lekérése sikertelen.', error)
+      this.logError('Az élelmiszerek lekérése sikertelen.', error)
       throw error
     }
   }
@@ -136,7 +138,7 @@ export class FoodsService {
       })
 
       if (!food) {
-        throw new NotFoundException('Food item nem található.')
+        throw new NotFoundException('Az élelmiszer nem található.')
       }
 
       return {
@@ -144,13 +146,17 @@ export class FoodsService {
         productAvailability: food.productAvailability.map(mapProductAvailabilityResponse),
       }
     } catch (error) {
-      this.logError(`A food item lekérése sikertelen: ${id}`, error)
+      this.logError(`Az élelmiszer lekérése sikertelen: ${id}`, error)
       throw error
     }
   }
 
   async update(id: string, dto: UpdateFoodDto, userId: string) {
     try {
+      const nutrition = typeof dto.nutrition === 'string' ? JSON.parse(dto.nutrition) : dto.nutrition
+
+      this.validateNutrition(nutrition)
+
       const oldFood = await this.findOne(id)
 
       return await this.prisma.$transaction(async (tx) => {
@@ -158,7 +164,7 @@ export class FoodsService {
           where: { id },
           data: {
             ...dto,
-            nutrition: dto.nutrition as Prisma.InputJsonValue | undefined,
+            nutrition: nutrition as Prisma.InputJsonValue | undefined,
             allergens: dto.allergens as Prisma.InputJsonValue | undefined,
           },
         })
@@ -175,7 +181,7 @@ export class FoodsService {
         return updatedFood
       })
     } catch (error) {
-      this.logError(`A food item frissítése sikertelen: ${id}`, error)
+      this.logError(`Az élelmiszer frissítése sikertelen: ${id}`, error)
       throw error
     }
   }
@@ -206,20 +212,20 @@ export class FoodsService {
         try {
           await this.storageService.deleteFileByUrl(imageUrlToDelete)
         } catch (storageError) {
-          this.logError(`A food item képfájl törlése sikertelen a storage-ból: ${id}`, storageError)
+          this.logError(`Az élelmiszer képfájljának törlése a tárhelyről sikertelen: ${id}`, storageError)
         }
       }
 
       return deletedFood
     } catch (error) {
-      this.logError(`A food item törlése sikertelen: ${id}`, error)
+      this.logError(`Az élelmiszer törlése sikertelen: ${id}`, error)
       throw error
     }
   }
 
   async updateImage(id: string, image: Express.Multer.File, userId: string) {
     if (!image) {
-      throw new BadRequestException('Image file is required.')
+      throw new BadRequestException('Képfájl megadása kötelező.')
     }
 
     const existingFood = await this.prisma.foodItem.findUnique({
@@ -227,11 +233,11 @@ export class FoodsService {
     })
 
     if (!existingFood) {
-      throw new NotFoundException('Food item not found.')
+      throw new NotFoundException('Az élelmiszer nem található.')
     }
 
     if (existingFood.type !== FoodItemType.BASIC) {
-      throw new BadRequestException('Image update endpoint is only available for BASIC food items.')
+      throw new BadRequestException('Kép módosítása csak alap típusú élelmiszereknél lehetséges.')
     }
 
     let uploadedImageUrl: string | undefined
@@ -264,8 +270,8 @@ export class FoodsService {
       if (existingFood.imageUrl) {
         try {
           await this.storageService.deleteFileByUrl(existingFood.imageUrl)
-        } catch (error) {
-          this.logger.warn(`Old food image could not be deleted from storage. foodItemId=${id}`)
+        } catch {
+          this.logger.warn(`Az élelmiszer régi képét nem sikerült törölni a tárhelyről. foodItemId=${id}`)
         }
       }
 
@@ -274,9 +280,9 @@ export class FoodsService {
       if (uploadedImageUrl) {
         try {
           await this.storageService.deleteFileByUrl(uploadedImageUrl)
-        } catch (deleteError) {
+        } catch {
           this.logger.warn(
-            `Uploaded food image cleanup failed after update error. foodItemId=${id}`,
+            `A feltöltött élelmiszerkép törlése a sikertelen módosítás után nem sikerült. foodItemId=${id}`,
           )
         }
       }
@@ -291,11 +297,11 @@ export class FoodsService {
     })
 
     if (!existingFood) {
-      throw new NotFoundException('Food item not found.')
+      throw new NotFoundException('Az élelmiszer nem található.')
     }
 
     if (existingFood.type !== FoodItemType.BASIC) {
-      throw new BadRequestException('Image delete endpoint is only available for BASIC food items.')
+      throw new BadRequestException('Kép törlése csak alap típusú élelmiszereknél lehetséges.')
     }
 
     if (!existingFood.imageUrl) {
@@ -324,11 +330,50 @@ export class FoodsService {
 
     try {
       await this.storageService.deleteFileByUrl(existingFood.imageUrl)
-    } catch (error) {
-      this.logger.warn(`Food image could not be deleted from storage. foodItemId=${id}`)
+    } catch {
+      this.logger.warn(`Az élelmiszer képét nem sikerült törölni a tárhelyről. foodItemId=${id}`)
     }
 
     return updatedFood
+  }
+
+  private validateNutrition(nutrition?: Record<string, unknown> | null): void {
+    if (!nutrition) {
+      return
+    }
+
+    const amount = (field: string): number => {
+      const value = nutrition[field] ?? 0
+
+      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+        throw new BadRequestException('A tápanyagmennyiségek csak nemnegatív, véges számok lehetnek.')
+      }
+
+      return value
+    }
+
+    const protein = amount('protein')
+    const carbs = amount('carbs')
+    const fat = amount('fat')
+    const fiber = amount('fiber')
+    const salt = amount('salt')
+    const sugar = amount('sugar')
+    const saturatedFat = amount('saturatedFat')
+    const total = new Prisma.Decimal(protein).plus(carbs).plus(fat).plus(fiber).plus(salt)
+
+    if (total.greaterThan(100)) {
+      throw new BadRequestException(
+        'A fehérje, szénhidrát, zsír, rost és só együttes mennyisége legfeljebb 100 g lehet.',
+      )
+    }
+
+    if (sugar > carbs) {
+      throw new BadRequestException('A cukor mennyisége nem haladhatja meg a szénhidrát mennyiségét.')
+    }
+
+    if (saturatedFat > fat) {
+      throw new BadRequestException('A telített zsír mennyisége nem haladhatja meg a zsír mennyiségét.')
+    }
   }
 
   private logError(message: string, error: unknown): void {

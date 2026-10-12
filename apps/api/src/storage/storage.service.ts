@@ -93,7 +93,7 @@ export class StorageService {
         width: imageMetadata.width,
         height: imageMetadata.height,
       }
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Image upload failed. Please try again later.')
     }
   }
@@ -116,7 +116,7 @@ export class StorageService {
           Key: key,
         }),
       )
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Image delete failed. Please try again later.')
     }
   }

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -37,12 +38,20 @@ export default function HomePage() {
         <p className="text-sm text-gray-500">{session.user.email}</p>
         <p className="text-xs text-gray-400">Szerepkör: {session.user.role}</p>
       </div>
-      <button
-        onClick={() => signOut({ callbackUrl: '/login' })}
-        className="rounded-lg border border-gray-300 px-6 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-      >
-        Kijelentkezés
-      </button>
+      <div className="flex flex-col items-center gap-3 sm:flex-row">
+        <Link
+          href="/moderator/foods/new"
+          className="rounded-lg bg-gray-900 px-6 py-2 text-sm font-medium text-white transition hover:bg-gray-700"
+        >
+          Alapanyag létrehozása
+        </Link>
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="rounded-lg border border-gray-300 px-6 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          Kijelentkezés
+        </button>
+      </div>
     </main>
   )
 }

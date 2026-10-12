@@ -75,7 +75,7 @@ export class FoodsController {
 
   @Post()
   @UseGuards(DevAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'MODERATOR')
   @UseInterceptors(FileInterceptor('image', foodImageUploadOptions))
   create(
     @Body() dto: CreateFoodDto,
