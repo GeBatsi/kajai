@@ -14,7 +14,8 @@
     "db:generate": "pnpm --filter @kajai/db generate",
     "db:seed": "pnpm --filter @kajai/db seed",
     "db:studio": "pnpm --filter @kajai/db studio",
-    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore"
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
+    "storybook": "pnpm --filter @kajai/ui storybook"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.0.0",

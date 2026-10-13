@@ -16,9 +16,10 @@
     "@kajai/ui": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "axios": "^1.7.0",
-    "next": "^15.3.0",
     "jose": "^5.9.6",
+    "next": "^15.3.0",
     "next-auth": "^4.24.7",
+    "next-themes": "^0.4.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^4.5.0"
@@ -32,6 +33,7 @@
     "eslint-config-next": "15.3.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.4.5"
   }
 }
