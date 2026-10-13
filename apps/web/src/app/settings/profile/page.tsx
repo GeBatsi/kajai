@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getApiErrorMessage, getMyProfile, updateMyProfile } from '@/lib/api'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getApiErrorMessage, getMyProfile, previewMyProfile, updateMyProfile, type UpdateProfileInput } from '@/lib/api'
 import { ACTIVITY_LEVEL_OPTIONS, GENDER_OPTIONS, GOAL_TYPE_OPTIONS } from '@/lib/profile-labels'
 import { MacroDonutChart } from '@/components/profile/macro-donut-chart'
 import type { ActivityLevel, GoalType } from '@kajai/types'
@@ -40,17 +40,54 @@ export default function ProfileSettingsPage() {
     setGoalType(profile.goalType)
   }, [profile])
 
+  const formInput = useMemo<UpdateProfileInput>(
+    () => ({
+      gender: gender || undefined,
+      dateOfBirth: dateOfBirth || undefined,
+      heightCm: heightCm ? Number(heightCm) : undefined,
+      weightKg: weightKg ? Number(weightKg) : undefined,
+      bodyFatPct: bodyFatPct ? Number(bodyFatPct) : undefined,
+      activityLevel,
+      goalType,
+    }),
+    [gender, dateOfBirth, heightCm, weightKg, bodyFatPct, activityLevel, goalType],
+  )
+
+  // Gépelés közben nem kérdezzük le minden leütésre az előnézetet.
+  const [previewInput, setPreviewInput] = useState(formInput)
+  useEffect(() => {
+    const timer = setTimeout(() => setPreviewInput(formInput), 400)
+    return () => clearTimeout(timer)
+  }, [formInput])
+
+  // Csak olyan adatokkal kérünk előnézetet, amit a szerver el is fogadna.
+  const previewable =
+    Boolean(profile) &&
+    !(previewInput.dateOfBirth && previewInput.dateOfBirth > todayStr) &&
+    !(previewInput.heightCm !== undefined && previewInput.heightCm < 50) &&
+    !(previewInput.weightKg !== undefined && previewInput.weightKg < 20) &&
+    !(previewInput.bodyFatPct !== undefined && (previewInput.bodyFatPct < 0 || previewInput.bodyFatPct > 100))
+
+  const { data: preview } = useQuery({
+    queryKey: ['profile-preview', previewInput],
+    queryFn: () => previewMyProfile(previewInput),
+    enabled: previewable,
+    placeholderData: keepPreviousData,
+    retry: false,
+  })
+
+  const isDirty =
+    Boolean(profile) &&
+    (gender !== (profile!.gender ?? '') ||
+      dateOfBirth !== (profile!.dateOfBirth ? String(profile!.dateOfBirth).slice(0, 10) : '') ||
+      heightCm !== (profile!.heightCm?.toString() ?? '') ||
+      weightKg !== (profile!.weightKg?.toString() ?? '') ||
+      bodyFatPct !== (profile!.bodyFatPct?.toString() ?? '') ||
+      activityLevel !== profile!.activityLevel ||
+      goalType !== profile!.goalType)
+
   const mutation = useMutation({
-    mutationFn: () =>
-      updateMyProfile({
-        gender: gender || undefined,
-        dateOfBirth: dateOfBirth || undefined,
-        heightCm: heightCm ? Number(heightCm) : undefined,
-        weightKg: weightKg ? Number(weightKg) : undefined,
-        bodyFatPct: bodyFatPct ? Number(bodyFatPct) : undefined,
-        activityLevel,
-        goalType,
-      }),
+    mutationFn: () => updateMyProfile(formInput),
     onSuccess: (updated) => {
       queryClient.setQueryData(['profile'], updated)
       setFieldErrors({})
@@ -186,23 +223,19 @@ export default function ProfileSettingsPage() {
             </label>
           </div>
 
-          {mutation.isSuccess && mutation.data.dailyKcal && (
+          {preview && (
             <div className="mt-6 flex flex-col gap-4">
+              <p className="-mb-2 text-xs text-gray-500">
+                {isDirty ? 'Előnézet – a változtatások még nincsenek mentve' : 'Jelenlegi kereted'}
+              </p>
               <div className="grid grid-cols-2 gap-3">
-                <SummaryStat label="Napi kalóriakeret" value={`${mutation.data.dailyKcal} kcal`} />
-                <SummaryStat label="TDEE" value={`${mutation.data.tdeeKcal} kcal`} />
+                <SummaryStat label="Napi kalóriakeret" value={`${preview.dailyKcal} kcal`} />
+                <SummaryStat label="TDEE" value={`${preview.tdeeKcal} kcal`} />
               </div>
-              {mutation.data.proteinG !== null &&
-                mutation.data.carbsG !== null &&
-                mutation.data.fatG !== null && (
-                  <MacroDonutChart
-                    proteinG={mutation.data.proteinG}
-                    carbsG={mutation.data.carbsG}
-                    fatG={mutation.data.fatG}
-                  />
-                )}
+              <MacroDonutChart proteinG={preview.proteinG} carbsG={preview.carbsG} fatG={preview.fatG} />
             </div>
           )}
+          {mutation.isSuccess && !isDirty && <p className="mt-4 text-sm text-green-700">Mentve.</p>}
           {mutation.isError && (
             <p className="mt-4 text-sm text-red-600">
               {getApiErrorMessage(mutation.error, 'Hiba történt a mentés közben.')}
