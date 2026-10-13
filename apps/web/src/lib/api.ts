@@ -36,3 +36,17 @@ export async function updateMyProfile(input: UpdateProfileInput): Promise<UserPr
   const { data } = await apiClient.patch<UserProfile>('/users/me/profile', input)
   return data
 }
+
+export interface NutritionPreview {
+  tdeeKcal: number
+  dailyKcal: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+}
+
+// Mentés nélkül kiszámolja a keretet; null, ha még hiányzik kötelező adat.
+export async function previewMyProfile(input: UpdateProfileInput): Promise<NutritionPreview | null> {
+  const { data } = await apiClient.post<NutritionPreview | ''>('/users/me/profile/preview', input)
+  return data || null
+}

@@ -145,21 +145,43 @@ export class UsersService {
     return profile
   }
 
-  async updateProfile(userId: string, dto: UpdateProfileDto) {
-    const existing = await this.prisma.userProfile.findUnique({ where: { userId } })
-    if (!existing) throw new NotFoundException('Profil nem található')
-
-    const mergedBodyFatPct = dto.bodyFatPct ?? existing.bodyFatPct
-
-    const merged: ProfileInput = {
+  // A mentett profil és a (még nem mentett) módosítások összefésülése.
+  private mergeProfile(
+    existing: {
+      gender: string | null
+      dateOfBirth: Date | null
+      heightCm: number | null
+      weightKg: number | null
+      bodyFatPct: number | null
+      activityLevel: ProfileInput['activityLevel']
+      goalType: ProfileInput['goalType']
+    },
+    dto: UpdateProfileDto,
+  ): ProfileInput {
+    return {
       gender: dto.gender ?? existing.gender,
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : existing.dateOfBirth,
       heightCm: dto.heightCm ?? existing.heightCm,
       weightKg: dto.weightKg ?? existing.weightKg,
-      bodyFatPct: mergedBodyFatPct,
+      bodyFatPct: dto.bodyFatPct ?? existing.bodyFatPct,
       activityLevel: dto.activityLevel ?? existing.activityLevel,
       goalType: dto.goalType ?? existing.goalType,
     }
+  }
+
+  // Előnézet: kiszámolja a kalória- és makrókeretet a megadott adatokkal, mentés nélkül.
+  async previewProfile(userId: string, dto: UpdateProfileDto) {
+    const existing = await this.prisma.userProfile.findUnique({ where: { userId } })
+    if (!existing) throw new NotFoundException('Profil nem található')
+
+    return calculateNutritionTargets(this.mergeProfile(existing, dto))
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const existing = await this.prisma.userProfile.findUnique({ where: { userId } })
+    if (!existing) throw new NotFoundException('Profil nem található')
+
+    const merged = this.mergeProfile(existing, dto)
     const targets = calculateNutritionTargets(merged)
 
     return this.prisma.userProfile.update({
@@ -169,7 +191,7 @@ export class UsersService {
         dateOfBirth: merged.dateOfBirth,
         heightCm: merged.heightCm,
         weightKg: merged.weightKg,
-        bodyFatPct: mergedBodyFatPct,
+        bodyFatPct: merged.bodyFatPct,
         activityLevel: merged.activityLevel,
         goalType: merged.goalType,
         tdeeKcal: targets?.tdeeKcal ?? null,
