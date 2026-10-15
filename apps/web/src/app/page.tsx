@@ -51,7 +51,7 @@ export default function HomePage() {
           />
         )}
         <p className="font-medium">{session.user.name}</p>
-        <p className="text-sm text-gray-500">{session.user.email}</p>
+        <p className="break-all text-sm text-gray-500">{session.user.email}</p>
         <p className="text-xs text-gray-400">Szerepkör: {session.user.role}</p>
       </div>
 

@@ -31,8 +31,9 @@ export function MacroDonutChart({ proteinG, carbsG, fatG }: MacroDonutChartProps
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-sm">
       <p className="mb-4 text-sm font-medium text-gray-600">Makróeloszlás</p>
-      <div className="flex items-center gap-5">
-        <svg viewBox="0 0 100 100" className="h-28 w-28 shrink-0 -rotate-90">
+      {/* Szűk képernyőn a jelmagyarázat a diagram alá törik, nem lóg ki a kártyából. */}
+      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-4">
+        <svg viewBox="0 0 100 100" className="h-24 w-24 shrink-0 -rotate-90 sm:h-28 sm:w-28">
           <circle cx="50" cy="50" r={RADIUS} fill="none" stroke="#f1efe9" strokeWidth={STROKE} />
           {segments.map((seg) => {
             const length = (seg.kcal / totalKcal) * CIRCUMFERENCE
@@ -55,7 +56,7 @@ export function MacroDonutChart({ proteinG, carbsG, fatG }: MacroDonutChartProps
             )
           })}
         </svg>
-        <div className="flex flex-1 flex-col gap-2.5">
+        <div className="flex min-w-[9rem] flex-1 flex-col gap-2.5">
           {segments.length === 0 && (
             <p className="text-sm text-gray-400">Még nincs kiszámított makróadat.</p>
           )}
@@ -65,7 +66,7 @@ export function MacroDonutChart({ proteinG, carbsG, fatG }: MacroDonutChartProps
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: seg.color }} />
                 {seg.label}
               </span>
-              <span className="font-medium text-gray-900">{Math.round(seg.grams)} g</span>
+              <span className="whitespace-nowrap font-medium tabular-nums text-gray-900">{Math.round(seg.grams)} g</span>
             </div>
           ))}
         </div>
