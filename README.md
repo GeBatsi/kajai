@@ -36,18 +36,42 @@ cd kajai
 # Függőségek
 pnpm install
 
-# Környezeti változók
+# Környezeti változók (a részleteket ld. .env.example)
 cp .env.example .env.local
-# Töltsd ki: DATABASE_URL, OPENAI_API_KEY, NEXTAUTH_SECRET
+cp .env.example apps/web/.env.local
+cp .env.local .env   # a Prisma parancsok ezt olvassák
 
-# Adatbázis migráció
+# Prisma kliens + adatbázis migráció
+pnpm db:generate
+pnpm --filter @kajai/db build
 pnpm db:migrate
 
 # Fejlesztői szerverek (web + api egyszerre)
 pnpm dev
-# web → http://localhost:3000
-# api → http://localhost:3001
+# web → http://localhost:4000
+# api → http://localhost:4001/api   (health: /api/health)
 ```
+
+### Docker Compose
+
+Docker-rel a teljes stack (Postgres, Redis, Meilisearch, API, web) egy paranccsal indul:
+
+```bash
+docker compose up -d --build   # web: http://localhost:4000, api: http://localhost:4001/api
+docker compose down            # leállítás (az adatok megmaradnak; -v törli őket)
+```
+
+Ha csak az adatbázis és a cache kell (az appot `pnpm dev`-vel futtatod):
+
+```bash
+docker compose up -d postgres redis
+```
+
+Ilyenkor a `.env.local`-ban: `DATABASE_URL="postgresql://postgres:postgres@localhost:5432/kajai_dev"`.
+
+### Deploy
+
+CI, staging deploy és a szükséges titkok: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Projektstruktúra
 
@@ -60,6 +84,8 @@ kajai/
 │   ├── db/           # Prisma schema + migrations
 │   ├── ui/           # Shared UI components (shadcn/ui)
 │   └── types/        # Shared TypeScript types
+├── docs/            # Deploy és környezetek leírása
+├── docker-compose.yml
 ├── .env.example
 ├── pnpm-workspace.yaml
 └── turbo.json
@@ -73,7 +99,7 @@ kajai/
 | Commit | Conventional Commits (`feat:`, `fix:`, `chore:`) |
 | PR | Minden PR-hoz Jira ticket (KAI-XX) |
 | Review | Min. 1 approval szükséges merge előtt |
-| CI | Lint + type-check + test minden PR-on |
+| CI | Lint + type-check + test + build és Docker füstteszt minden PR-on |
 
 ## Linkek
 
