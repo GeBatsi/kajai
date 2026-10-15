@@ -51,7 +51,7 @@ services:
     volumes:
       - meili-data:/meili_data
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--spider', 'http://localhost:7700/health']
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:7700/health || wget -q --spider http://localhost:7700/health']
       interval: 5s
       timeout: 5s
       retries: 10
