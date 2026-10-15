@@ -147,7 +147,15 @@ export class UsersService {
 
   // A mentett profil és a (még nem mentett) módosítások összefésülése.
   private mergeProfile(
-    existing: { gender: string | null; dateOfBirth: Date | null; heightCm: number | null; weightKg: number | null; activityLevel: ProfileInput['activityLevel']; goalType: ProfileInput['goalType'] },
+    existing: {
+      gender: string | null
+      dateOfBirth: Date | null
+      heightCm: number | null
+      weightKg: number | null
+      bodyFatPct: number | null
+      activityLevel: ProfileInput['activityLevel']
+      goalType: ProfileInput['goalType']
+    },
     dto: UpdateProfileDto,
   ): ProfileInput {
     return {
@@ -155,6 +163,7 @@ export class UsersService {
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : existing.dateOfBirth,
       heightCm: dto.heightCm ?? existing.heightCm,
       weightKg: dto.weightKg ?? existing.weightKg,
+      bodyFatPct: dto.bodyFatPct ?? existing.bodyFatPct,
       activityLevel: dto.activityLevel ?? existing.activityLevel,
       goalType: dto.goalType ?? existing.goalType,
     }
@@ -182,7 +191,7 @@ export class UsersService {
         dateOfBirth: merged.dateOfBirth,
         heightCm: merged.heightCm,
         weightKg: merged.weightKg,
-        bodyFatPct: dto.bodyFatPct ?? existing.bodyFatPct,
+        bodyFatPct: merged.bodyFatPct,
         activityLevel: merged.activityLevel,
         goalType: merged.goalType,
         tdeeKcal: targets?.tdeeKcal ?? null,
