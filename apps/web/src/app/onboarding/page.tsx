@@ -11,7 +11,7 @@ import type { ActivityLevel, GoalType } from '@kajai/types'
 const STEP_TITLES = ['Alapadatok', 'Aktivitás szint', 'Cél', 'Összegzés']
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
+  'w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
 const errorInputClass = 'border-red-400 focus:border-red-500'
 
 const todayStr = new Date().toISOString().slice(0, 10)
@@ -52,7 +52,7 @@ export default function OnboardingPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
+      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-2">
           {STEP_TITLES.map((title, i) => (
             <div key={title} className={`h-1.5 flex-1 rounded-full ${i <= step ? 'bg-gray-900' : 'bg-gray-200'}`} />
@@ -88,7 +88,7 @@ export default function OnboardingPage() {
                 value={dateOfBirth}
                 max={todayStr}
                 onChange={(e) => setDateOfBirth(e.target.value)}
-                className={`${inputClass} ${isFutureDate ? errorInputClass : ''}`}
+                className={`${inputClass} appearance-none ${isFutureDate ? errorInputClass : ''}`}
               />
               {isFutureDate && (
                 <span className="text-xs text-red-600">A születési dátum nem lehet jövőbeli.</span>
