@@ -9,7 +9,7 @@ export function CalorieProgressBar({ dailyKcal, consumedKcal = 0 }: CalorieProgr
 
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-sm">
-      <div className="mb-2 flex items-baseline justify-between">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
         <p className="text-sm font-medium text-gray-600">Napi kalóriakeret</p>
         <p className="text-sm text-gray-400">
           {consumedKcal} / {dailyKcal} kcal

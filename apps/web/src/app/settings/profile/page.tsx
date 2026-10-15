@@ -8,7 +8,7 @@ import { ACTIVITY_LEVEL_OPTIONS, GENDER_OPTIONS, GOAL_TYPE_OPTIONS } from '@/lib
 import type { ActivityLevel, GoalType } from '@kajai/types'
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
+  'w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
 const selectClass = inputClass + ' bg-white'
 const errorInputClass = 'border-red-400 focus:border-red-500'
 
@@ -124,7 +124,7 @@ export default function ProfileSettingsPage() {
         <Link href="/" className="mb-4 inline-block text-sm text-gray-500 hover:underline">
           ← Vissza a főoldalra
         </Link>
-        <div className="rounded-2xl bg-white p-8 shadow-sm">
+        <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-8">
           <h1 className="mb-6 text-xl font-bold text-gray-900">Profil beállítások</h1>
 
           <div className="flex flex-col gap-4">
@@ -149,7 +149,7 @@ export default function ProfileSettingsPage() {
                   setDateOfBirth(e.target.value)
                   setFieldErrors((prev) => ({ ...prev, dateOfBirth: undefined }))
                 }}
-                className={`${inputClass} ${fieldErrors.dateOfBirth ? errorInputClass : ''}`}
+                className={`${inputClass} appearance-none ${fieldErrors.dateOfBirth ? errorInputClass : ''}`}
               />
               {fieldErrors.dateOfBirth && <span className="text-xs text-red-600">{fieldErrors.dateOfBirth}</span>}
             </label>
@@ -261,7 +261,7 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-gray-50 p-3">
       <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-lg font-bold text-gray-900">{value}</p>
+      <p className="text-base font-bold text-gray-900 sm:text-lg">{value}</p>
     </div>
   )
 }
