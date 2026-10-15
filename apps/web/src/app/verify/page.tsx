@@ -1,9 +1,9 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Suspense, useEffect, useState,useRef } from 'react'
 import { signIn } from 'next-auth/react'
-import Link from "next/link";
 
 
 type VerifyState = 'loading' | 'success' | 'error'
@@ -116,8 +116,11 @@ function VerifyPageContent() {
             A megerősítő link érvénytelen vagy hiányzik.
           </p>
 
-          <Link href="/" className="block w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800">
-                      Vissza a főoldalra
+          <Link
+            href="/"
+            className="block w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+          >
+            Vissza a főoldalra
           </Link>
         </div>
       </main>
