@@ -1,0 +1,20 @@
+# Függőségek és build kimenetek – a konténerben újraépülnek
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/storybook-static
+**/*.tsbuildinfo
+
+# Titkok – a konténer a compose environment / env_file részből kapja őket
+**/.env
+**/.env.*
+!.env.example
+
+# Egyéb
+.git
+.github
+.claude
+design
+**/*.log

@@ -1,0 +1,115 @@
+# Staging deploy (KAI-75): a dev ágra kerülő minden változás kimegy stagingre.
+#   - adatbázis migráció a staging adatbázison
+#   - API → Railway (apps/api/Dockerfile, ld. railway.json)
+#   - web → Vercel
+#
+# Amíg a szükséges titkok (GitHub → Settings → Secrets and variables → Actions)
+# nincsenek beállítva, az adott lépés kihagyódik, nem bukik el. Részletek: docs/DEPLOYMENT.md
+
+name: Deploy staging
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  config:
+    name: Check configuration
+    runs-on: ubuntu-latest
+    outputs:
+      migrate: ${{ steps.check.outputs.migrate }}
+      api: ${{ steps.check.outputs.api }}
+      web: ${{ steps.check.outputs.web }}
+    steps:
+      - id: check
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          has() { [ -n "$1" ] && echo true || echo false; }
+          echo "migrate=$(has "$STAGING_DATABASE_URL")" >> "$GITHUB_OUTPUT"
+          echo "api=$(has "$RAILWAY_TOKEN")" >> "$GITHUB_OUTPUT"
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web=false" >> "$GITHUB_OUTPUT"
+          fi
+          [ -n "$STAGING_DATABASE_URL" ] || echo "::notice::STAGING_DATABASE_URL hiányzik – a migráció kimarad."
+          [ -n "$RAILWAY_TOKEN" ] || echo "::notice::RAILWAY_TOKEN hiányzik – az API deploy kimarad."
+          [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ] \
+            || echo "::notice::VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID hiányzik – a web deploy kimarad."
+
+  migrate:
+    name: Database migration
+    needs: config
+    if: needs.config.outputs.migrate == 'true'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @kajai/db
+      - run: pnpm --filter @kajai/db migrate:deploy
+
+  api:
+    name: API → Railway
+    needs: [config, migrate]
+    if: always() && needs.config.outputs.api == 'true' && needs.migrate.result != 'failure'
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE: ${{ vars.RAILWAY_API_SERVICE || 'api' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy
+        run: npx --yes @railway/cli@3 up --ci --service "$RAILWAY_SERVICE"
+      - name: Health check
+        if: vars.STAGING_API_URL != ''
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS "${{ vars.STAGING_API_URL }}/api/health" && exit 0
+            sleep 10
+          done
+          echo "::error::Az API nem válaszol a health végponton."
+          exit 1
+
+  web:
+    name: Web → Vercel
+    needs: [config, api]
+    if: always() && needs.config.outputs.web == 'true' && needs.api.result != 'failure'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: npm install --global vercel@latest
+      # A staging a Vercel "preview" környezetét használja; a változókat a Vercel projektben kell megadni.
+      - run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+      - run: vercel build --token="$VERCEL_TOKEN"
+      - name: Deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          echo "Staging web: $url" >> "$GITHUB_STEP_SUMMARY"
