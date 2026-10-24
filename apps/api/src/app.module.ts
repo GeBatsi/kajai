@@ -7,8 +7,11 @@ import { IngredientsModule } from './ingredients/ingredients.module';
 import { ProductAvailabilityModule } from './product-availability/product-availability.module';
 import { StoresModule } from './stores/stores.module';
 import { AuditModule } from './audit/audit.module';
-import { AuthModule } from './auth/auth.module'
-import { UsersModule } from './users/users.module'
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { MailModule } from './mail/mail.module';
+// import { TokenService } from './token/token.service';
+import { TokenModule } from './token/token.module';
 
 @Module({
   imports: [
@@ -23,10 +26,12 @@ import { UsersModule } from './users/users.module'
     ProductAvailabilityModule,
     StoresModule,
     AuditModule,
-    PrismaModule,
     AuthModule,
     UsersModule,
+    MailModule,
+    TokenModule,
   ],
+  providers: [],
 })
 export class AppModule {}
 

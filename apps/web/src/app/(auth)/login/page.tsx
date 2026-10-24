@@ -1,14 +1,30 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react';
+import { useState } from 'react';
+import LoginModal from '@/components/auth/LoginModal';
+import Header from '@/components/layout/Header'
+import RegisterModal from '@/components/auth/RegisterModal';
 
 export default function LoginPage() {
-  return (
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isregisterModalOpen,setIsRegisterModalOpen] = useState(false);
+  const { status } = useSession();
+   const isLoggedIn = status === 'authenticated'
+  return (<>
+    <Header onLoginClick={() => setIsLoginModalOpen(!isLoggedIn)} onRegisterClick={()=>setIsRegisterModalOpen(true)}/>
     <main className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-md">
         <h1 className="mb-2 text-center text-2xl font-bold text-gray-900">Bejelentkezés</h1>
         <p className="mb-8 text-center text-sm text-gray-500">Folytasd a meglévő fiókoddal</p>
         <div className="flex flex-col gap-3">
+          <button
+              type="button"
+              onClick={() => setIsLoginModalOpen(true)}
+              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              Bejelentkezés saját emaillel
+            </button>
           <button
             onClick={() => signIn('google', { callbackUrl: '/' })}
             className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
@@ -47,6 +63,12 @@ export default function LoginPage() {
           )}
         </div>
       </div>
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
+      <RegisterModal isOpen={isregisterModalOpen} onClose={()=>setIsRegisterModalOpen(false)} />
+
     </main>
-  )
+  </>)
 }
