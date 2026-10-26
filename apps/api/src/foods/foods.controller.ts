@@ -16,7 +16,7 @@ import { FoodsService } from './foods.service'
 import { CreateFoodDto } from './dto/create-food.dto'
 import { UpdateFoodDto } from './dto/update-food.dto'
 import { HttpCode, HttpStatus } from '@nestjs/common'
-import { DevAuthGuard } from '../auth/guards/dev-auth.guard'
+import { NextAuthGuard } from '../auth/guards/nextauth.guard'
 import { RolesGuard } from '../auth/guards/role.guard'
 import { UseGuards } from '@nestjs/common'
 import { Roles } from '../auth/decorators/roles.decorator'
@@ -74,7 +74,7 @@ export class FoodsController {
   constructor(private readonly foodsService: FoodsService) {}
 
   @Post()
-  @UseGuards(DevAuthGuard, RolesGuard)
+  @UseGuards(NextAuthGuard, RolesGuard)
   @Roles('ADMIN', 'MODERATOR')
   @UseInterceptors(FileInterceptor('image', foodImageUploadOptions))
   create(
@@ -99,28 +99,32 @@ export class FoodsController {
   }
 
   @Patch(':id')
-  @UseGuards(DevAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @UseGuards(NextAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
   @UseInterceptors(FileInterceptor('image', foodImageUploadOptions))
   update(
     @Param('id') id: string,
     @Body() dto: UpdateFoodDto,
     @CurrentUser() user: RequestUser,
+    @UploadedFile() image?: Express.Multer.File,
   ): Promise<FoodItem> {
+    if (image) {
+      throw new BadRequestException('A képet külön kell menteni. Használd a Kép mentése gombot.')
+    }
     return this.foodsService.update(id, dto, user.id)
   }
 
   @Delete(':id')
-  @UseGuards(DevAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @UseGuards(NextAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<FoodItem> {
     return this.foodsService.remove(id, user.id)
   }
 
   @Patch(':id/image')
-  @UseGuards(DevAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @UseGuards(NextAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
   @UseInterceptors(FileInterceptor('image', foodImageUploadOptions))
   updateImage(
     @Param('id') id: string,
@@ -131,8 +135,8 @@ export class FoodsController {
   }
 
   @Delete(':id/image')
-  @UseGuards(DevAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @UseGuards(NextAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteImage(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<FoodItem> {
     return this.foodsService.deleteImage(id, user.id)

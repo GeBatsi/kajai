@@ -45,6 +45,8 @@ export interface UserProfile {
 // ─── Food ─────────────────────────────────────────────────────────────────────
 
 export interface Nutrition {
+  per?: 100
+  unit?: 'g' | 'ml'
   energyKcal: number
   protein: number
   carbs: number

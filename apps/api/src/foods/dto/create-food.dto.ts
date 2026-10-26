@@ -1,54 +1,40 @@
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsObject,
-  IsOptional,
-  IsString,
-} from 'class-validator';
-import { Transform } from 'class-transformer';
-import { FoodItemType } from '@kajai/db';
-
-function parseJsonFormField(value: unknown): unknown {
-  if (typeof value !== 'string') {
-    return value;
-  }
-
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return value;
-  }
-}
+import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength } from 'class-validator'
+import { Transform, Type } from 'class-transformer'
+import { FoodItemType } from '@kajai/db'
+import { parseAllergens, parseNutrition } from '../food-json.schema'
 
 export class CreateFoodDto {
-  @IsString()
-  @IsNotEmpty()
-  name!: string;
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString({ message: 'Az élelmiszer neve szöveg kell legyen.' })
+  @IsNotEmpty({ message: 'Az élelmiszer neve kötelező.' })
+  @MaxLength(200, { message: 'Az élelmiszer neve legfeljebb 200 karakter lehet.' })
+  name!: string
 
   @IsOptional()
   @IsEnum(FoodItemType)
-  type?: FoodItemType;
+  type?: FoodItemType
 
   @IsOptional()
   @IsString()
-  brand?: string;
+  brand?: string
 
   @IsOptional()
   @IsString()
-  eanBarcode?: string;
+  eanBarcode?: string
 
   @IsOptional()
   @IsString()
-  category?: string;
+  category?: string
 
   @IsOptional()
-  @Transform(({ value }) => parseJsonFormField(value))
+  @Type(() => Object)
+  @Transform(({ obj, key }) => parseNutrition(obj[key]))
   @IsObject()
-  nutrition?: Record<string, unknown>;
+  nutrition?: Record<string, unknown>
 
   @IsOptional()
-  @Transform(({ value }) => parseJsonFormField(value))
+  @Type(() => Object)
+  @Transform(({ obj, key }) => parseAllergens(obj[key]))
   @IsObject()
-  allergens?: Record<string, unknown>;
+  allergens?: Record<string, unknown>
 }
-

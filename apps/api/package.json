@@ -8,7 +8,9 @@
     "start": "node dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:foods": "node scripts/test-specs.cjs src/foods/dto/food-name.spec.ts src/foods/dto/food-json.spec.ts src/foods/foods.service.spec.ts src/storage/storage.service.spec.ts src/foods/foods.integration.spec.ts",
+    "test:auth": "node scripts/test-specs.cjs src/auth/guards/nextauth.guard.spec.ts src/auth/session-auth.integration.spec.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",
@@ -28,12 +30,13 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
+    "multer": "^2.4.0",
     "nodemailer": "^9.0.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "multer": "^2.4.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.2",
@@ -42,8 +45,8 @@
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^4.17.21",
-    "@types/multer": "^2.2.0",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.2.0",
     "@types/nodemailer": "^8.0.1",
     "@types/passport-jwt": "^4.0.1",
     "prisma": "^5.22.0",

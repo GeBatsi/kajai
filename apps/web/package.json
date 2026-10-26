@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:food-access": "node scripts/test-food-access.cjs",
+    "test:food-fields": "node scripts/test-food-fields.cjs"
   },
   "dependencies": {
     "@kajai/db": "workspace:*",

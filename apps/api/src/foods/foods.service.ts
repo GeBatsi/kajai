@@ -12,6 +12,7 @@ import { UpdateFoodDto } from './dto/update-food.dto'
 import { AuditService } from '../audit/audit.service'
 import { mapProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
 import { StorageService } from '../storage/storage.service'
+import { normalizeStoredNutrition, parseAllergens, parseNutrition } from './food-json.schema'
 
 @Injectable()
 export class FoodsService {
@@ -24,16 +25,23 @@ export class FoodsService {
   ) {}
 
   async create(dto: CreateFoodDto, userId: string, image?: Express.Multer.File) {
-    const nutrition = typeof dto.nutrition === 'string' ? JSON.parse(dto.nutrition) : dto.nutrition
+    const nutrition = parseNutrition(dto.nutrition)
 
     this.validateNutrition(nutrition)
 
-    const allergens = typeof dto.allergens === 'string' ? JSON.parse(dto.allergens) : dto.allergens
+    const allergens = parseAllergens(dto.allergens)
 
     let uploadedImageUrl: string | undefined
 
     try {
-      const createdFood = await this.prisma.$transaction(async (tx) => {
+      await this.assertUniqueBasicFood(dto.name, dto.category, dto.type ?? FoodItemType.BASIC)
+
+      if (image) {
+        const uploadedImage = await this.storageService.uploadFoodImage(image)
+        uploadedImageUrl = uploadedImage.url
+      }
+
+      return await this.prisma.$transaction(async (tx) => {
         const createdFood = await tx.foodItem.create({
           data: {
             name: dto.name,
@@ -41,6 +49,7 @@ export class FoodsService {
             brand: dto.brand,
             eanBarcode: dto.eanBarcode,
             category: dto.category,
+            imageUrl: uploadedImageUrl,
             nutrition: nutrition as Prisma.InputJsonValue | undefined,
             allergens: allergens as Prisma.InputJsonValue | undefined,
           },
@@ -56,48 +65,19 @@ export class FoodsService {
 
         return createdFood
       })
-
-      if (!image) {
-        return createdFood
-      }
-
-      const uploadedImage = await this.storageService.uploadFoodImage(image, createdFood.id)
-
-      uploadedImageUrl = uploadedImage.url
-
-      const foodWithImage = await this.prisma.$transaction(async (tx) => {
-        const oldValue = createdFood
-
-        const updatedFood = await tx.foodItem.update({
-          where: { id: createdFood.id },
-          data: {
-            imageUrl: uploadedImage.url,
-          },
-        })
-
-        await this.auditService.logWithTx(tx, {
-          tableName: 'food_items',
-          recordId: updatedFood.id,
-          action: 'UPDATE',
-          oldValue,
-          newValue: updatedFood,
-          userId,
-        })
-
-        return updatedFood
-      })
-
-      return foodWithImage
     } catch (error) {
       if (uploadedImageUrl) {
-        await this.storageService.deleteFileByUrl(uploadedImageUrl)
+        try {
+          await this.storageService.deleteFileByUrl(uploadedImageUrl)
+        } catch (storageError) {
+          this.logError(
+            'A feltöltött élelmiszerkép törlése a sikertelen létrehozás után nem sikerült.',
+            storageError,
+          )
+        }
       }
 
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Ez az EAN vonalkód már létezik.')
-      }
-
-      throw error
+      this.rethrowFoodError(error)
     }
   }
 
@@ -153,11 +133,31 @@ export class FoodsService {
 
   async update(id: string, dto: UpdateFoodDto, userId: string) {
     try {
-      const nutrition = typeof dto.nutrition === 'string' ? JSON.parse(dto.nutrition) : dto.nutrition
-
-      this.validateNutrition(nutrition)
+      const nutritionPatch = parseNutrition(dto.nutrition)
+      const allergens = parseAllergens(dto.allergens)
+      if (
+        nutritionPatch !== undefined &&
+        (nutritionPatch === null ||
+          typeof nutritionPatch !== 'object' ||
+          Array.isArray(nutritionPatch))
+      ) {
+        throw new BadRequestException('A tápértékeket objektumként kell megadni.')
+      }
 
       const oldFood = await this.findOne(id)
+      let nutrition: Record<string, unknown> | undefined
+      if (nutritionPatch !== undefined && Object.keys(nutritionPatch).length > 0) {
+        const previousNutrition = normalizeStoredNutrition(oldFood.nutrition)
+        nutrition = { ...previousNutrition, ...nutritionPatch }
+        this.validateNutrition(nutrition)
+      }
+
+      await this.assertUniqueBasicFood(
+        dto.name ?? oldFood.name,
+        dto.category === undefined ? oldFood.category : dto.category,
+        dto.type ?? oldFood.type,
+        id,
+      )
 
       return await this.prisma.$transaction(async (tx) => {
         const updatedFood = await tx.foodItem.update({
@@ -165,7 +165,7 @@ export class FoodsService {
           data: {
             ...dto,
             nutrition: nutrition as Prisma.InputJsonValue | undefined,
-            allergens: dto.allergens as Prisma.InputJsonValue | undefined,
+            allergens: allergens as Prisma.InputJsonValue | undefined,
           },
         })
 
@@ -182,7 +182,7 @@ export class FoodsService {
       })
     } catch (error) {
       this.logError(`Az élelmiszer frissítése sikertelen: ${id}`, error)
-      throw error
+      this.rethrowFoodError(error)
     }
   }
 
@@ -212,7 +212,10 @@ export class FoodsService {
         try {
           await this.storageService.deleteFileByUrl(imageUrlToDelete)
         } catch (storageError) {
-          this.logError(`Az élelmiszer képfájljának törlése a tárhelyről sikertelen: ${id}`, storageError)
+          this.logError(
+            `Az élelmiszer képfájljának törlése a tárhelyről sikertelen: ${id}`,
+            storageError,
+          )
         }
       }
 
@@ -271,7 +274,9 @@ export class FoodsService {
         try {
           await this.storageService.deleteFileByUrl(existingFood.imageUrl)
         } catch {
-          this.logger.warn(`Az élelmiszer régi képét nem sikerült törölni a tárhelyről. foodItemId=${id}`)
+          this.logger.warn(
+            `Az élelmiszer régi képét nem sikerült törölni a tárhelyről. foodItemId=${id}`,
+          )
         }
       }
 
@@ -337,6 +342,51 @@ export class FoodsService {
     return updatedFood
   }
 
+  private async assertUniqueBasicFood(
+    name: string,
+    category: string | null | undefined,
+    type: FoodItemType,
+    excludeId?: string,
+  ): Promise<void> {
+    if (type !== FoodItemType.BASIC) {
+      return
+    }
+
+    // Keep normalization identical to the partial unique index, including legacy rows.
+    const duplicates = await this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT "id"
+      FROM "food_items"
+      WHERE "type" = 'BASIC'
+        AND lower(btrim("name")) = lower(btrim(${name}))
+        AND lower(btrim(COALESCE("category", ''))) = lower(btrim(${category ?? ''}))
+        ${excludeId === undefined ? Prisma.empty : Prisma.sql`AND "id" <> ${excludeId}`}
+      LIMIT 1
+    `)
+
+    if (duplicates.length > 0) {
+      throw new ConflictException('Ilyen nevű alapanyag már létezik ebben a kategóriában.')
+    }
+  }
+
+  private rethrowFoodError(error: unknown): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      // Expression indexes can report SQL expressions instead of Prisma field names.
+      const target = Array.isArray(error.meta?.target)
+        ? error.meta.target.join(',')
+        : String(error.meta?.target ?? '')
+
+      if (target.includes('name') && target.includes('category')) {
+        throw new ConflictException('Ilyen nevű alapanyag már létezik ebben a kategóriában.')
+      }
+
+      if (target.includes('eanBarcode')) {
+        throw new ConflictException('Ez az EAN vonalkód már létezik.')
+      }
+    }
+
+    throw error
+  }
+
   private validateNutrition(nutrition?: Record<string, unknown> | null): void {
     if (!nutrition) {
       return
@@ -346,12 +396,18 @@ export class FoodsService {
       const value = nutrition[field] ?? 0
 
       if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-        throw new BadRequestException('A tápanyagmennyiségek csak nemnegatív, véges számok lehetnek.')
+        throw new BadRequestException(
+          'A tápanyagmennyiségek csak nemnegatív, véges számok lehetnek.',
+        )
       }
 
       return value
     }
 
+    const energyKcal = amount('energyKcal')
+    if (energyKcal > 900) {
+      throw new BadRequestException('Az energia mennyisége legfeljebb 900 kcal lehet.')
+    }
     const protein = amount('protein')
     const carbs = amount('carbs')
     const fat = amount('fat')
@@ -368,11 +424,15 @@ export class FoodsService {
     }
 
     if (sugar > carbs) {
-      throw new BadRequestException('A cukor mennyisége nem haladhatja meg a szénhidrát mennyiségét.')
+      throw new BadRequestException(
+        'A cukor mennyisége nem haladhatja meg a szénhidrát mennyiségét.',
+      )
     }
 
     if (saturatedFat > fat) {
-      throw new BadRequestException('A telített zsír mennyisége nem haladhatja meg a zsír mennyiségét.')
+      throw new BadRequestException(
+        'A telített zsír mennyisége nem haladhatja meg a zsír mennyiségét.',
+      )
     }
   }
 

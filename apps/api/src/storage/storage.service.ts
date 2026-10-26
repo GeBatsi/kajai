@@ -68,11 +68,11 @@ export class StorageService {
 
   async uploadFoodImage(
     file: Express.Multer.File,
-    foodItemId: string,
+    foodItemId?: string,
   ): Promise<UploadedFoodImageResult> {
     const imageMetadata = await this.validateImageFile(file)
 
-    const key = this.generateFoodImageKey(file, foodItemId)
+    const key = this.generateFoodImageKey(file, foodItemId ?? randomUUID())
 
     try {
       await this.s3Client.send(
@@ -94,7 +94,7 @@ export class StorageService {
         height: imageMetadata.height,
       }
     } catch {
-      throw new InternalServerErrorException('Image upload failed. Please try again later.')
+      throw new InternalServerErrorException('A kép feltöltése sikertelen. Próbáld újra később.')
     }
   }
 
@@ -117,7 +117,7 @@ export class StorageService {
         }),
       )
     } catch {
-      throw new InternalServerErrorException('Image delete failed. Please try again later.')
+      throw new InternalServerErrorException('A kép törlése sikertelen. Próbáld újra később.')
     }
   }
 
@@ -197,7 +197,9 @@ export class StorageService {
       case 'image/webp':
         return 'webp'
       default:
-        throw new BadRequestException('Invalid image format. Allowed formats: jpg, png, webp.')
+        throw new BadRequestException(
+          'Érvénytelen képformátum. Engedélyezett formátumok: jpg, png, webp.',
+        )
     }
   }
 
@@ -219,7 +221,7 @@ export class StorageService {
     const value = this.configService.get<string>(name)
 
     if (!value) {
-      throw new Error(`Missing required environment variable: ${name}`)
+      throw new Error(`Hiányzó kötelező környezeti változó: ${name}`)
     }
 
     return value

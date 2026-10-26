@@ -38,5 +38,6 @@ coverage/
 # Prisma
 prisma/migrations/dev.db*
 
-# tsc
+# tsconfig
+tsconfig.tsbuildinfo
 *.tsbuildinfo
