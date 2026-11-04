@@ -1,0 +1,119 @@
+# KajAI – helyi fejlesztői környezet (KAI-75)
+#
+#   docker compose up -d --build        # minden szolgáltatás (infra + api + web)
+#   docker compose up -d postgres redis # csak az adatbázis és a cache, ha az appot pnpm dev-vel futtatod
+#   docker compose down                 # leállítás (az adatok a volume-okban megmaradnak)
+#   docker compose down -v              # leállítás és az adatok törlése
+#
+# Portok: web 4000, api 4001, postgres 5432, redis 6379, meilisearch 7700.
+# A titkos értékeket (Google OAuth, levelezés stb.) a gyökér .env fájlból veszi,
+# ld. .env.example. A közös Neon dev adatbázis helyett itt saját helyi Postgres fut.
+
+name: kajai
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kajai_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d kajai_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILISEARCH_ADMIN_KEY:-kajai-dev-master-key}
+      MEILI_NO_ANALYTICS: 'true'
+    ports:
+      - '7700:7700'
+    volumes:
+      - meili-data:/meili_data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:7700/health || wget -q --spider http://localhost:7700/health']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kajai_dev
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+      API_PORT: '4001'
+      NEXTAUTH_URL: http://localhost:4000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-kajai-docker-dev-secret}
+    ports:
+      - '4001:4001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:4001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # A NEXT_PUBLIC_* értékek build közben kerülnek a kliens kódba.
+        NEXT_PUBLIC_API_URL: http://localhost:4001
+        NEXT_PUBLIC_APPLE_ENABLED: ${NEXT_PUBLIC_APPLE_ENABLED:-false}
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # A szerveroldali (NextAuth) kód a konténerben fut, ezért ott a postgres a szolgáltatásnév.
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kajai_dev
+      NEXTAUTH_URL: http://localhost:4000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-kajai-docker-dev-secret}
+      NEXT_PUBLIC_API_URL: http://localhost:4001
+    ports:
+      - '4000:4000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:4000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  redis-data:
+  meili-data:
