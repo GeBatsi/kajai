@@ -1,5 +1,9 @@
-// Shared UI components – add shadcn/ui components here as they are created
-// e.g.: export { Button } from './components/button'
-// e.g.: export { Input } from './components/input'
-
-export {}
+// Shared UI components (shadcn/ui mintára, a KajAI design tokenjeivel)
+export { cn } from './lib/cn'
+export * from './components/badge'
+export * from './components/button'
+export * from './components/card'
+export * from './components/dialog'
+export * from './components/input'
+export * from './components/label'
+export * from './components/theme-toggle'
