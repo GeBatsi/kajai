@@ -38,6 +38,9 @@ coverage/
 # Prisma
 prisma/migrations/dev.db*
 
+# Storybook
+storybook-static/
+
 # tsconfig
 tsconfig.tsbuildinfo
 *.tsbuildinfo
