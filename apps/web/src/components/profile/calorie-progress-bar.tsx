@@ -1,11 +1,23 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
 interface CalorieProgressBarProps {
   dailyKcal: number
   consumedKcal?: number
 }
 
 export function CalorieProgressBar({ dailyKcal, consumedKcal = 0 }: CalorieProgressBarProps) {
-  const pct = Math.min(100, Math.round((consumedKcal / dailyKcal) * 100))
+  const targetPct = Math.min(100, Math.round((consumedKcal / dailyKcal) * 100))
   const remaining = Math.max(0, dailyKcal - consumedKcal)
+
+  // A sáv 0-ról indul, majd az első render után a tényleges értékre animál –
+  // enélkül a böngésző nem futtatná le a CSS width átmenetet a kezdeti állapotból.
+  const [pct, setPct] = useState(0)
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setPct(targetPct))
+    return () => cancelAnimationFrame(raf)
+  }, [targetPct])
 
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-sm">
@@ -17,7 +29,7 @@ export function CalorieProgressBar({ dailyKcal, consumedKcal = 0 }: CalorieProgr
       </div>
       <div className="h-3 w-full overflow-hidden rounded-full bg-gray-100">
         <div
-          className="h-full rounded-full bg-gray-900 transition-all"
+          className="h-full rounded-full bg-gray-900 transition-[width] duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>

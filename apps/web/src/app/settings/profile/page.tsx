@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApiErrorMessage, getMyProfile, previewMyProfile, updateMyProfile, type UpdateProfileInput } from '@/lib/api'
 import { ACTIVITY_LEVEL_OPTIONS, GENDER_OPTIONS, GOAL_TYPE_OPTIONS } from '@/lib/profile-labels'
+import { MacroDonutChart } from '@/components/profile/macro-donut-chart'
 import type { ActivityLevel, GoalType } from '@kajai/types'
 
 const inputClass =
@@ -223,17 +224,15 @@ export default function ProfileSettingsPage() {
           </div>
 
           {preview && (
-            <div className="mt-6">
-              <p className="mb-2 text-xs text-gray-500">
+            <div className="mt-6 flex flex-col gap-4">
+              <p className="-mb-2 text-xs text-gray-500">
                 {isDirty ? 'Előnézet – a változtatások még nincsenek mentve' : 'Jelenlegi kereted'}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <SummaryStat label="Napi kalóriakeret" value={`${preview.dailyKcal} kcal`} />
                 <SummaryStat label="TDEE" value={`${preview.tdeeKcal} kcal`} />
-                <SummaryStat label="Fehérje" value={`${preview.proteinG} g`} />
-                <SummaryStat label="Szénhidrát" value={`${preview.carbsG} g`} />
-                <SummaryStat label="Zsír" value={`${preview.fatG} g`} />
               </div>
+              <MacroDonutChart proteinG={preview.proteinG} carbsG={preview.carbsG} fatG={preview.fatG} />
             </div>
           )}
           {mutation.isSuccess && !isDirty && <p className="mt-4 text-sm text-green-700">Mentve.</p>}
