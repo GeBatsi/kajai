@@ -4,8 +4,21 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
-    "lib": ["ES2022", "dom"]
+    "lib": [
+      "ES2022",
+      "dom"
+    ],
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*",
+    "tailwind-preset.ts",
+    "tailwind.config.ts",
+    ".storybook/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
