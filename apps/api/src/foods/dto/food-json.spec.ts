@@ -26,7 +26,6 @@ for (const metatype of [CreateFoodDto, UpdateFoodDto]) {
       ['allergens', { milk: true, foo: 'bar' }],
       ['nutrition', { kcal: 120 }],
       ['nutrition', { protein: '25' }],
-      ['nutrition', { protein: null }],
       ['nutrition', { energyKcal: -1 }],
       ['nutrition', { energyKcal: 901 }],
       ['nutrition', { carbs: false }],
@@ -38,6 +37,12 @@ for (const metatype of [CreateFoodDto, UpdateFoodDto]) {
       ['allergens', { milk: 1 }],
       ['allergens', { fish: null }],
       ['allergens', { fish: {} }],
+      ['allergens', { sulphites: 'true' }],
+      ['allergens', { sulphites: 1 }],
+      ['allergens', { sulphites: null }],
+      ['allergens', { molluscs: 'false' }],
+      ['allergens', { molluscs: 0 }],
+      ['allergens', { molluscs: null }],
       ['nutrition', []],
       ['allergens', []],
     ]
@@ -54,6 +59,19 @@ for (const metatype of [CreateFoodDto, UpdateFoodDto]) {
 
     for (const [field, value] of [
       ['nutrition', { protein: 25 }],
+      [
+        'nutrition',
+        {
+          energyKcal: null,
+          protein: null,
+          carbs: null,
+          fat: null,
+          sugar: null,
+          saturatedFat: null,
+          fiber: null,
+          salt: null,
+        },
+      ],
       [
         'nutrition',
         {
@@ -85,9 +103,12 @@ for (const metatype of [CreateFoodDto, UpdateFoodDto]) {
           celery: false,
           mustard: true,
           lupin: false,
+          sulphites: true,
+          molluscs: false,
         },
       ],
       ['allergens', {}],
+      ['allergens', { sulphites: false, molluscs: true }],
     ] as [string, unknown][]) {
       test(`${metatype.name} ${multipart ? 'multipart' : 'JSON'} accepts ${field}=${JSON.stringify(value)}`, async () => {
         assert.deepEqual((await validate(field, value))[field], value)
@@ -105,6 +126,16 @@ for (const metatype of [CreateFoodDto, UpdateFoodDto]) {
       ),
       BadRequestException,
     )
+  })
+
+  test(`${metatype.name} accepts an omitted or explicitly cleared category`, async () => {
+    const omitted = await pipe.transform({ name: 'Alma' }, { type: 'body', metatype })
+    assert.equal(omitted.category, undefined)
+    const cleared = await pipe.transform(
+      { name: 'Alma', category: null },
+      { type: 'body', metatype },
+    )
+    assert.equal(cleared.category, null)
   })
 
   test(`${metatype.name} never preserves prototype keys removed by the Nest validation pipe`, async () => {

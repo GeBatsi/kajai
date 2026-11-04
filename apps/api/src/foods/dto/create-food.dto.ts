@@ -24,7 +24,7 @@ export class CreateFoodDto {
 
   @IsOptional()
   @IsString()
-  category?: string
+  category?: string | null
 
   @IsOptional()
   @Type(() => Object)

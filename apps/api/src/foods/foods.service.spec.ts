@@ -17,6 +17,7 @@ function setup() {
     type: FoodItemType.BASIC as FoodItemType,
     productAvailability: [],
     nutrition: null as Record<string, unknown> | null,
+    allergens: null as Record<string, unknown> | null,
   }
   const save = mock.fn(async ({ data }: { data: Record<string, unknown> }) => ({
     ...food,
@@ -52,6 +53,120 @@ function setup() {
 
 const image = { buffer: Buffer.from('image'), mimetype: 'image/png' } as Express.Multer.File
 const createDto = { name: 'Élelmiszer' }
+
+for (const method of ['create', 'update'] as const) {
+  for (const enabled of [true, false]) {
+    test(`${method} persists and returns all 14 allergens set to ${enabled}`, async () => {
+      const { service, save } = setup()
+      const allergens = Object.fromEntries(
+        [
+          'gluten',
+          'milk',
+          'egg',
+          'soy',
+          'nuts',
+          'peanuts',
+          'fish',
+          'shellfish',
+          'sesame',
+          'celery',
+          'mustard',
+          'lupin',
+          'sulphites',
+          'molluscs',
+        ].map((key) => [key, enabled]),
+      )
+      const dto = { ...createDto, allergens }
+      const result =
+        method === 'create'
+          ? await service.create(dto, 'user-id')
+          : await service.update('food-id', dto, 'user-id')
+      assert.deepEqual(save.mock.calls[0].arguments[0].data.allergens, allergens)
+      assert.deepEqual(result.allergens, allergens)
+    })
+  }
+}
+
+for (const multipart of [false, true]) {
+  for (const enabled of [true, false]) {
+    test(`partial allergens update preserves other flags and audits the merged state (${multipart ? 'multipart' : 'JSON'}, ${enabled})`, async () => {
+      const { service, food, save, audit } = setup()
+      const previous = { milk: true, egg: !enabled, fish: false }
+      food.allergens = previous
+      const patch = { egg: enabled }
+      const result = await service.update(
+        food.id,
+        { allergens: (multipart ? JSON.stringify(patch) : patch) as CreateFoodDto['allergens'] },
+        'user-id',
+      )
+      const expected = { milk: true, egg: enabled, fish: false }
+      assert.deepEqual(save.mock.calls[0].arguments[0].data.allergens, expected)
+      assert.deepEqual(result.allergens, expected)
+      assert.deepEqual(previous, { milk: true, egg: !enabled, fish: false })
+      assert.deepEqual(audit.logWithTx.mock.calls[0].arguments[1], {
+        tableName: 'food_items',
+        recordId: food.id,
+        action: 'UPDATE',
+        oldValue: food,
+        newValue: result,
+        userId: 'user-id',
+      })
+    })
+  }
+}
+
+for (const allergens of [undefined, {}, '{}']) {
+  test(`omitted or empty allergens (${JSON.stringify(allergens)}) do not write the JSON field`, async () => {
+    const { service, food, save } = setup()
+    food.allergens = { milk: true, egg: false }
+    await service.update(
+      food.id,
+      { category: 'Új kategória', allergens: allergens as CreateFoodDto['allergens'] },
+      'user-id',
+    )
+    assert.equal(save.mock.calls[0].arguments[0].data.allergens, undefined)
+    assert.equal(save.mock.calls[0].arguments[0].data.category, 'Új kategória')
+    assert.deepEqual(food.allergens, { milk: true, egg: false })
+  })
+}
+
+for (const allergens of [null, 'null']) {
+  test(`null allergens (${typeof allergens}) cannot clear stored flags`, async () => {
+    const { service, food, save, audit } = setup()
+    food.allergens = { milk: true }
+    await assert.rejects(
+      service.update(
+        food.id,
+        { allergens: allergens as unknown as CreateFoodDto['allergens'] },
+        'user-id',
+      ),
+      (error: unknown) => {
+        assert.ok(error instanceof BadRequestException)
+        assert.equal(error.getStatus(), 400)
+        return true
+      },
+    )
+    assert.equal(save.mock.callCount(), 0)
+    assert.equal(audit.logWithTx.mock.callCount(), 0)
+    assert.deepEqual(food.allergens, { milk: true })
+  })
+}
+
+test('partial allergens update initializes a previously null object', async () => {
+  const { service, food, save } = setup()
+  const result = await service.update(food.id, { allergens: { egg: false } }, 'user-id')
+  assert.deepEqual(save.mock.calls[0].arguments[0].data.allergens, { egg: false })
+  assert.deepEqual(result.allergens, { egg: false })
+})
+
+test('create without category and update clearing category persist the expected values', async () => {
+  const { service, save } = setup()
+  await service.create(createDto, 'user-id')
+  assert.equal(save.mock.calls[0].arguments[0].data.category, undefined)
+  const result = await service.update('food-id', { category: null }, 'user-id')
+  assert.equal(save.mock.calls[1].arguments[0].data.category, null)
+  assert.equal(result.category, null)
+})
 
 for (const method of ['create', 'update'] as const) {
   test(`${method} rejects a duplicate before writes, audit or image upload`, async () => {
@@ -317,6 +432,15 @@ for (const method of ['create', 'update'] as const) {
     ...(method === 'create' ? [['null nutrition', null] as [string, unknown]] : []),
     ['empty nutrition', {}],
     ['null optional amounts', { protein: 20, carbs: 40, fat: 30, fiber: null, salt: null }],
+    [
+      'all amounts unknown',
+      Object.fromEntries(Object.keys(validNutrition).map((key) => [key, null])),
+    ],
+    ['null energy in JSON form data', JSON.stringify({ energyKcal: null })],
+    ['sugar without carbs', { sugar: 1 }],
+    ['saturated fat without fat', { saturatedFat: 1 }],
+    ['sugar with unknown carbs', { sugar: 10, carbs: null }],
+    ['saturated fat with unknown fat', { saturatedFat: 10, fat: null }],
     ['zero amounts', { carbs: 0, sugar: 0, fat: 0, saturatedFat: 0 }],
     ['JSON form data', JSON.stringify(validNutrition)],
     ['zero energy', { energyKcal: 0 }],
@@ -364,8 +488,19 @@ for (const method of ['create', 'update'] as const) {
     ['over 100 g', { ...validNutrition, salt: 1.01 }, 'legfeljebb 100 g'],
     ['sugar over carbs', { ...validNutrition, sugar: 40.01 }, 'cukor mennyisége'],
     ['saturated fat over fat', { ...validNutrition, saturatedFat: 30.01 }, 'telített zsír'],
-    ['sugar without carbs', { sugar: 1 }, 'cukor mennyisége'],
-    ['saturated fat without fat', { saturatedFat: 1 }, 'telített zsír'],
+    ['sugar with zero carbs', { sugar: 1, carbs: 0 }, 'cukor mennyisége'],
+    ['saturated fat with zero fat', { saturatedFat: 1, fat: 0 }, 'telített zsír'],
+    [
+      'known amounts over 100 g with unknowns',
+      { protein: null, carbs: 80, fat: 30 },
+      'legfeljebb 100 g',
+    ],
+    ['sugar over 100 g with unknown carbs', { sugar: 101, carbs: null }, 'legfeljebb 100 g'],
+    [
+      'saturated fat over 100 g with unknown fat',
+      { saturatedFat: 101, fat: null },
+      'legfeljebb 100 g',
+    ],
     ['negative amounts', { ...validNutrition, protein: -10, carbs: 50 }, 'nemnegatív'],
     ['string amounts', { ...validNutrition, sugar: '50' }, 'véges számok'],
     ['NaN amounts', { protein: NaN }, 'véges számok'],
@@ -392,6 +527,26 @@ for (const method of ['create', 'update'] as const) {
       assert.equal(storage.uploadFoodImage.mock.callCount(), 0)
     })
   }
+}
+
+for (const key of Object.keys(validNutrition)) {
+  test(`partial nutrition PATCH clears ${key} to unknown, preserving omitted fields and audit values`, async () => {
+    const { service, food, save, audit } = setup()
+    food.nutrition = { ...validNutrition }
+    const result = await service.update(food.id, { nutrition: { [key]: null } }, 'user-id')
+    const expected = { ...validNutrition, [key]: null }
+    assert.deepEqual(result.nutrition, expected)
+    assert.deepEqual(save.mock.calls[0].arguments[0].data.nutrition, expected)
+    assert.deepEqual(food.nutrition, validNutrition)
+    assert.deepEqual(audit.logWithTx.mock.calls[0].arguments[1], {
+      tableName: 'food_items',
+      recordId: food.id,
+      action: 'UPDATE',
+      oldValue: food,
+      newValue: result,
+      userId: 'user-id',
+    })
+  })
 }
 
 test('partial nutrition update preserves other fields and audits the merged result', async () => {

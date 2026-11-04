@@ -48,7 +48,16 @@ test('real HTTP authorization on every formerly header-authenticated endpoint', 
   const calls: { area: string; method: string; args: unknown[] }[] = []
   const service = (area: string) =>
     Object.fromEntries(
-      ['create', 'update', 'remove', 'updateImage', 'deleteImage', 'findAll'].map((method) => [
+      [
+        'create',
+        'update',
+        'remove',
+        'updateImage',
+        'deleteImage',
+        'findAll',
+        'history',
+        'restore',
+      ].map((method) => [
         method,
         async (...args: unknown[]) => {
           calls.push({ area, method, args })
@@ -97,6 +106,18 @@ test('real HTTP authorization on every formerly header-authenticated endpoint', 
   const routes = [
     { method: 'POST', path: '/foods', body: { name: 'Test food' }, status: 201 },
     { method: 'PATCH', path: '/foods/test-id', body: { name: 'Updated food' }, status: 200 },
+    { method: 'GET', path: '/foods/test-id/history', status: 200 },
+    {
+      method: 'POST',
+      path: '/foods/test-id/restore',
+      body: {
+        auditId: 'test-audit',
+        side: 'after',
+        expectedUpdatedAt: '2026-10-27T10:00:00.000Z',
+        expectedLatestAuditId: 'latest',
+      },
+      status: 200,
+    },
     { method: 'DELETE', path: '/foods/test-id', status: 204 },
     { method: 'PATCH', path: '/foods/test-id/image', image: true, status: 200 },
     { method: 'DELETE', path: '/foods/test-id/image', status: 204 },
@@ -151,10 +172,11 @@ test('real HTTP authorization on every formerly header-authenticated endpoint', 
         assert.equal(response.status, expected, text)
         if (expected < 300) {
           assert.equal(calls.length, 1)
-          assert.ok(
-            calls[0].args.includes('real-user'),
-            'service/audit receives the authenticated ID',
-          )
+          if (route.method !== 'GET')
+            assert.ok(
+              calls[0].args.includes('real-user'),
+              'service/audit receives the authenticated ID',
+            )
           assert.ok(!calls[0].args.includes('forged-user'))
         } else {
           assert.equal(calls.length, 0, 'denied requests never reach business logic')

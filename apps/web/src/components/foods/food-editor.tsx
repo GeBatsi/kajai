@@ -63,6 +63,12 @@ export default function FoodEditor({ apiBaseUrl, foodId }: { apiBaseUrl: string;
           {error ? (
             <div role="alert" className="text-sm text-red-700">
               <p>{error}</p>
+              <Link
+                href={`/moderator/foods/${encodeURIComponent(foodId)}/history`}
+                className="mt-4 block underline"
+              >
+                Előzmények megtekintése
+              </Link>
               <button
                 type="button"
                 onClick={() => setAttempt((value) => value + 1)}

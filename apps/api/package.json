@@ -9,7 +9,8 @@
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "type-check": "tsc --noEmit",
-    "test:foods": "node scripts/test-specs.cjs src/foods/dto/food-name.spec.ts src/foods/dto/food-json.spec.ts src/foods/foods.service.spec.ts src/storage/storage.service.spec.ts src/foods/foods.integration.spec.ts",
+    "test": "pnpm run test:foods && pnpm run test:auth",
+    "test:foods": "node scripts/test-specs.cjs src/foods/dto/food-name.spec.ts src/foods/dto/food-json.spec.ts src/foods/food-history.spec.ts src/foods/foods.service.spec.ts src/storage/storage.service.spec.ts src/foods/foods.integration.spec.ts",
     "test:auth": "node scripts/test-specs.cjs src/auth/guards/nextauth.guard.spec.ts src/auth/session-auth.integration.spec.ts"
   },
   "dependencies": {

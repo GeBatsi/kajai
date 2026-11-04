@@ -53,4 +53,6 @@ jobs:
         run: pnpm type-check
 
       - name: Test
+        env:
+          FOOD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kajai_test
         run: pnpm test

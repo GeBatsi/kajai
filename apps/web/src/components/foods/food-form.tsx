@@ -4,7 +4,15 @@ import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { ChangeEvent, FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { EditableFood, foodApiError } from './food-api'
-import { allergenFields, nutritionFields } from './food-fields'
+import type { Allergen } from '@kajai/types'
+import {
+  allergenFields,
+  allergenOptions,
+  allergenValues,
+  nutritionAmount,
+  nutritionFields,
+} from './food-fields'
+import Image from 'next/image'
 
 type FoodFormValues = {
   name: string
@@ -21,14 +29,7 @@ type FoodFormValues = {
     fiber: string
     salt: string
   }
-  allergens: {
-    gluten: boolean
-    milk: boolean
-    egg: boolean
-    soy: boolean
-    nuts: boolean
-    peanuts: boolean
-  }
+  allergens: Allergen
 }
 
 const defaultValues: FoodFormValues = {
@@ -46,14 +47,7 @@ const defaultValues: FoodFormValues = {
     fiber: '',
     salt: '',
   },
-  allergens: {
-    gluten: false,
-    milk: false,
-    egg: false,
-    soy: false,
-    nuts: false,
-    peanuts: false,
-  },
+  allergens: allergenValues(),
 }
 
 type FoodFormProps = {
@@ -67,7 +61,11 @@ function formValues(food?: EditableFood): FoodFormValues {
   if (!food) return defaultValues
   const nutrition = food.nutrition ?? {}
   const amount = (key: string, legacyKey?: string) => {
-    const value = nutrition[key] ?? (legacyKey ? nutrition[legacyKey] : undefined)
+    const value = Object.hasOwn(nutrition, key)
+      ? nutrition[key]
+      : legacyKey
+        ? nutrition[legacyKey]
+        : undefined
     return typeof value === 'number' && Number.isFinite(value) ? String(value) : ''
   }
   return {
@@ -85,14 +83,7 @@ function formValues(food?: EditableFood): FoodFormValues {
       fiber: amount('fiber'),
       salt: amount('salt'),
     },
-    allergens: {
-      gluten: food.allergens?.gluten === true,
-      milk: food.allergens?.milk === true,
-      egg: food.allergens?.egg === true,
-      soy: food.allergens?.soy === true,
-      nuts: food.allergens?.nuts === true,
-      peanuts: food.allergens?.peanuts === true,
-    },
+    allergens: allergenValues(food.allergens),
   }
 }
 
@@ -177,6 +168,7 @@ export default function FoodForm({
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null
+    setSuccess(null)
     setImageFile(file)
     setImageError(null)
     setImageSuccess(null)
@@ -184,6 +176,7 @@ export default function FoodForm({
 
   const saveImage = async (remove = false) => {
     if (!initialFood || isBusy || (!remove && !imageFile)) return
+    setSuccess(null)
     setIsSavingImage(true)
     setImageError(null)
     setImageSuccess(null)
@@ -228,20 +221,21 @@ export default function FoodForm({
     try {
       requireSession()
       const name = values.name.trim()
+      const category = values.category.trim()
       if (!name) throw new Error('Az alapanyag neve kötelező.')
       if (name.length > 200) throw new Error('Az alapanyag neve legfeljebb 200 karakter lehet.')
       const nutrition = {
         ...nutritionFields(savedFood?.nutrition),
         per: values.nutrition.per,
         unit: values.nutrition.unit,
-        energyKcal: values.nutrition.energyKcal ? Number(values.nutrition.energyKcal) : 0,
-        protein: values.nutrition.protein ? Number(values.nutrition.protein) : 0,
-        carbs: values.nutrition.carbs ? Number(values.nutrition.carbs) : 0,
-        sugar: values.nutrition.sugar ? Number(values.nutrition.sugar) : 0,
-        fat: values.nutrition.fat ? Number(values.nutrition.fat) : 0,
-        saturatedFat: values.nutrition.saturatedFat ? Number(values.nutrition.saturatedFat) : 0,
-        fiber: values.nutrition.fiber ? Number(values.nutrition.fiber) : 0,
-        salt: values.nutrition.salt ? Number(values.nutrition.salt) : 0,
+        energyKcal: nutritionAmount(values.nutrition.energyKcal),
+        protein: nutritionAmount(values.nutrition.protein),
+        carbs: nutritionAmount(values.nutrition.carbs),
+        sugar: nutritionAmount(values.nutrition.sugar),
+        fat: nutritionAmount(values.nutrition.fat),
+        saturatedFat: nutritionAmount(values.nutrition.saturatedFat),
+        fiber: nutritionAmount(values.nutrition.fiber),
+        salt: nutritionAmount(values.nutrition.salt),
       }
       const allergens = { ...allergenFields(savedFood?.allergens), ...values.allergens }
       let response: Response
@@ -253,7 +247,7 @@ export default function FoodForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name,
-            category: values.category,
+            category: category || null,
             ...(JSON.stringify(values.nutrition) !== JSON.stringify(previous.nutrition)
               ? { nutrition }
               : {}),
@@ -266,7 +260,7 @@ export default function FoodForm({
         const body = new FormData()
         body.append('name', name)
         body.append('type', 'BASIC')
-        body.append('category', values.category)
+        if (category) body.append('category', category)
         body.append('nutrition', JSON.stringify(nutrition))
         body.append('allergens', JSON.stringify(allergens))
         if (imageFile) body.append('image', imageFile)
@@ -311,6 +305,32 @@ export default function FoodForm({
         <div className="rounded-3xl bg-white p-6 shadow-sm sm:p-8">
           <h1 className="mb-8 text-3xl font-bold text-slate-900 sm:text-4xl">{title}</h1>
 
+          {initialFood && (
+            <Link
+              href={`/moderator/foods/${encodeURIComponent(initialFood.id)}/history`}
+              aria-disabled={isBusy}
+              onClick={(event) => {
+                if (isBusy) {
+                  event.preventDefault()
+                  return
+                }
+                const hasEdits =
+                  JSON.stringify(values) !== JSON.stringify(formValues(savedFood)) ||
+                  imageFile !== null
+                if (
+                  hasEdits &&
+                  !window.confirm(
+                    'Nem mentett módosításaid vannak. Az előzmények megnyitásával ezeket elveted. Folytatod?',
+                  )
+                )
+                  event.preventDefault()
+              }}
+              className="mb-6 inline-block rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium"
+            >
+              Előzmények
+            </Link>
+          )}
+
           <form onSubmit={handleSubmit}>
             <fieldset disabled={isBusy} className="space-y-6">
               <legend className="sr-only">Alapanyag adatai</legend>
@@ -332,7 +352,7 @@ export default function FoodForm({
 
               <div>
                 <label htmlFor="food-category" className="mb-2 block text-sm text-slate-600">
-                  Kategória
+                  Kategória (opcionális)
                 </label>
                 <input
                   id="food-category"
@@ -341,13 +361,15 @@ export default function FoodForm({
                   onChange={handleTopLevelChange('category')}
                   className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500"
                   placeholder="Pl. hús"
-                  required={!isEditing}
                 />
               </div>
 
               <div>
                 <p className="mb-3 text-sm font-medium text-slate-700">
                   Tápértékek ({values.nutrition.per} {values.nutrition.unit})
+                </p>
+                <p className="mb-3 text-sm text-slate-600">
+                  Az üresen hagyott mező ismeretlen értéket jelent. Ha az érték nulla, írj 0-t.
                 </p>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -398,37 +420,15 @@ export default function FoodForm({
               <div>
                 <p className="mb-3 text-sm font-medium text-slate-700">Allergének</p>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <CheckboxField
-                    label="Glutén"
-                    checked={values.allergens.gluten}
-                    onChange={handleAllergenChange('gluten')}
-                  />
-                  <CheckboxField
-                    label="Tej"
-                    checked={values.allergens.milk}
-                    onChange={handleAllergenChange('milk')}
-                  />
-                  <CheckboxField
-                    label="Tojás"
-                    checked={values.allergens.egg}
-                    onChange={handleAllergenChange('egg')}
-                  />
-                  <CheckboxField
-                    label="Szója"
-                    checked={values.allergens.soy}
-                    onChange={handleAllergenChange('soy')}
-                  />
-                  <CheckboxField
-                    label="Diófélék"
-                    checked={values.allergens.nuts}
-                    onChange={handleAllergenChange('nuts')}
-                  />
-                  <CheckboxField
-                    label="Földimogyoró"
-                    checked={values.allergens.peanuts}
-                    onChange={handleAllergenChange('peanuts')}
-                  />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {allergenOptions.map(({ key, label }) => (
+                    <CheckboxField
+                      key={key}
+                      label={label}
+                      checked={values.allergens[key] === true}
+                      onChange={handleAllergenChange(key)}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -459,7 +459,7 @@ export default function FoodForm({
                     <p className="mb-2 text-sm text-slate-600">
                       {imageFile ? 'Új kép előnézete' : 'Jelenlegi kép'}
                     </p>
-                    <img
+                    <Image
                       src={imagePreviewUrl || currentImageUrl || ''}
                       alt={imageFile ? 'Új kép előnézete' : `${values.name} jelenlegi képe`}
                       className="h-40 w-40 rounded-xl border border-slate-200 object-cover"

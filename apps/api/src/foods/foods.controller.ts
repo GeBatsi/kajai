@@ -15,6 +15,7 @@ import type { FoodItem, Prisma } from '@kajai/db'
 import { FoodsService } from './foods.service'
 import { CreateFoodDto } from './dto/create-food.dto'
 import { UpdateFoodDto } from './dto/update-food.dto'
+import { FoodHistoryQueryDto, RestoreFoodDto } from './dto/food-history.dto'
 import { HttpCode, HttpStatus } from '@nestjs/common'
 import { NextAuthGuard } from '../auth/guards/nextauth.guard'
 import { RolesGuard } from '../auth/guards/role.guard'
@@ -120,6 +121,21 @@ export class FoodsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<FoodItem> {
     return this.foodsService.remove(id, user.id)
+  }
+
+  @Get(':id/history')
+  @UseGuards(NextAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
+  history(@Param('id') id: string, @Query() query: FoodHistoryQueryDto) {
+    return this.foodsService.history(id, query)
+  }
+
+  @Post(':id/restore')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(NextAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
+  restore(@Param('id') id: string, @Body() dto: RestoreFoodDto, @CurrentUser() user: RequestUser) {
+    return this.foodsService.restore(id, dto, user.id)
   }
 
   @Patch(':id/image')

@@ -1,5 +1,6 @@
 'use client'
 import { signOut, useSession } from 'next-auth/react'
+import Image from 'next/image'
 
 interface HeaderProps {
   onLoginClick: () => void,
@@ -41,7 +42,7 @@ export default function Header({
     <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
       <div className="font-bold text-gray-900 flex w-20 gap-3 items-center">
         <div>Kajai</div>
-        <img src="/Kajai.webp" alt="Kajai logó" className='text-sm font-extralight '/>
+        <Image src="/Kajai.webp" alt="Kajai logó" className='text-sm font-extralight '/>
       </div>
       {isLoading && <div className="h-9 w-24 animate-pulse rounded-lg bg-gray-200" />}
       {!isLoading && (isLoggedIn ?  <span className="text-sm text-gray-700">

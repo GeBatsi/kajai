@@ -1,14 +1,11 @@
 import { BadRequestException } from '@nestjs/common'
 import type { Allergen, Nutrition } from '@kajai/types'
 
-const nutritionFields: Record<
-  keyof Nutrition | 'per' | 'unit',
-  'number' | 'nullable' | 'per' | 'unit'
-> = {
-  energyKcal: 'number',
-  protein: 'number',
-  carbs: 'number',
-  fat: 'number',
+const nutritionFields: Record<keyof Nutrition | 'per' | 'unit', 'nullable' | 'per' | 'unit'> = {
+  energyKcal: 'nullable',
+  protein: 'nullable',
+  carbs: 'nullable',
+  fat: 'nullable',
   sugar: 'nullable',
   saturatedFat: 'nullable',
   fiber: 'nullable',
@@ -29,6 +26,8 @@ const allergenFields: Record<keyof Allergen, true> = {
   celery: true,
   mustard: true,
   lupin: true,
+  sulphites: true,
+  molluscs: true,
 }
 
 function parseObject(value: unknown, field: string): Record<string, unknown> | null | undefined {
@@ -39,7 +38,7 @@ function parseObject(value: unknown, field: string): Record<string, unknown> | n
       throw new BadRequestException(`${field}: érvénytelen JSON.`)
     }
   }
-  // Preserve the existing optional-object semantics; PATCH rejects nutrition: null separately.
+  // Preserve optional-object semantics; PATCH rejects null for both objects separately.
   if (value === undefined || value === null) return value
   if (typeof value !== 'object' || Array.isArray(value)) {
     throw new BadRequestException(`${field}: az értéket objektumként kell megadni.`)

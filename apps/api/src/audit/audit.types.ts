@@ -1,4 +1,4 @@
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE';
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE';
 
 export interface WriteAuditLogParams {
   tableName: string;

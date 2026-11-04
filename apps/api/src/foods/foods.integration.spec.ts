@@ -11,6 +11,9 @@ import { StorageService } from '../storage/storage.service'
 import { FoodsService } from './foods.service'
 
 const testDatabaseUrl = process.env.FOOD_TEST_DATABASE_URL
+if (process.env.CI && process.env.CI !== 'false' && !testDatabaseUrl) {
+  throw new Error('CI-ben a FOOD_TEST_DATABASE_URL kötelező az adatbázisos tesztek futtatásához.')
+}
 const duplicateMessage = 'Ilyen nevű alapanyag már létezik ebben a kategóriában.'
 
 function isDuplicate(error: unknown): boolean {
@@ -22,7 +25,12 @@ function isDuplicate(error: unknown): boolean {
 
 test(
   'BASIC food uniqueness with PostgreSQL',
-  { skip: !testDatabaseUrl, timeout: 60000 },
+  {
+    skip: testDatabaseUrl
+      ? false
+      : 'A FOOD_TEST_DATABASE_URL nincs megadva; az adatbázisos teszt kimarad.',
+    timeout: 60000,
+  },
   async (t) => {
     const schema = `food_uniqueness_test_${randomUUID().replaceAll('-', '')}`
     const url = new URL(testDatabaseUrl!)
@@ -92,15 +100,14 @@ test(
             { name: 'QA19-dup', category: 'Más' },
           ],
         })
-        const duplicates =
-          await db.$queryRawUnsafe<
-            {
-              normalized_name: string
-              normalized_category: string
-              duplicate_count: bigint
-              records: unknown[]
-            }[]
-          >(preflight)
+        const duplicates = await db.$queryRawUnsafe<
+          {
+            normalized_name: string
+            normalized_category: string
+            duplicate_count: bigint
+            records: unknown[]
+          }[]
+        >(preflight)
         assert.equal(duplicates.length, 1)
         assert.equal(duplicates[0].normalized_name, 'qa19-dup')
         assert.equal(duplicates[0].normalized_category, 'hús')
@@ -118,6 +125,51 @@ test(
     // Only this test's isolated schema is cleared, then the real migration is applied.
     await db.foodItem.deleteMany()
     await db.$executeRawUnsafe(migration)
+
+    await t.test(
+      'nutrition nulls and explicit zero survive create, partial PATCH and audit storage',
+      async () => {
+        const nutrition = {
+          energyKcal: null,
+          protein: null,
+          carbs: null,
+          fat: null,
+          sugar: null,
+          saturatedFat: null,
+          fiber: 0,
+          salt: null,
+        }
+        const created = await service.create({ name: 'Ismeretlen tápértékek', nutrition }, userId)
+        assert.deepEqual(
+          (await db.foodItem.findUniqueOrThrow({ where: { id: created.id } })).nutrition,
+          nutrition,
+        )
+        await service.update(created.id, { nutrition: { salt: 1 } }, userId)
+        const before = { ...nutrition, salt: 1 }
+        assert.deepEqual(
+          (await db.foodItem.findUniqueOrThrow({ where: { id: created.id } })).nutrition,
+          before,
+        )
+        const result = await service.update(
+          created.id,
+          { nutrition: { salt: null, energyKcal: 0 } },
+          userId,
+        )
+        const expected = { ...nutrition, energyKcal: 0 }
+        assert.deepEqual(result.nutrition, expected)
+        assert.deepEqual(
+          (await db.foodItem.findUniqueOrThrow({ where: { id: created.id } })).nutrition,
+          expected,
+        )
+        const logs = await db.auditLog.findMany({
+          where: { recordId: created.id },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        })
+        assert.equal(logs.length, 3)
+        assert.deepEqual((logs[0].oldValue as Prisma.JsonObject).nutrition, before)
+        assert.deepEqual((logs[0].newValue as Prisma.JsonObject).nutrition, expected)
+      },
+    )
 
     await t.test(
       'sequential duplicate and case/space variants return 409 before image upload',
@@ -240,6 +292,77 @@ test(
         assert.equal(audits[0].action, 'CREATE')
         assert.equal(storage.deleteFileByUrl.mock.callCount(), 1)
         assert.notEqual(storage.deleteFileByUrl.mock.calls[0].arguments[0], saved[0].imageUrl)
+      },
+    )
+
+    await t.test(
+      'history restore is atomic, replaces JSON and serializes concurrent restores',
+      async () => {
+        const created = await service.create(
+          { name: 'Before', nutrition: { protein: 5 }, allergens: { milk: false } },
+          userId,
+        )
+        const creation = await db.auditLog.findFirstOrThrow({
+          where: { recordId: created.id, action: 'CREATE' },
+        })
+        await service.update(
+          created.id,
+          {
+            name: 'After',
+            nutrition: { protein: 20, carbs: 10 },
+            allergens: { milk: true, fish: true },
+          },
+          userId,
+        )
+        const history = await service.history(created.id, { limit: 20 })
+        assert.ok(history.current)
+        const dto = {
+          auditId: creation.id,
+          side: 'after' as const,
+          expectedUpdatedAt: history.current.updatedAt.toISOString(),
+          expectedLatestAuditId: history.current.latestAuditId,
+        }
+        const failingAudit = {
+          logWithTx: async () => {
+            throw new Error('audit failure')
+          },
+        }
+        const failingService = new FoodsService(
+          apiDb,
+          failingAudit as unknown as AuditService,
+          storage as unknown as StorageService,
+        )
+        await assert.rejects(failingService.restore(created.id, dto, userId), /audit failure/)
+        assert.equal(
+          (await db.foodItem.findUniqueOrThrow({ where: { id: created.id } })).name,
+          'After',
+        )
+        assert.equal(await db.auditLog.count({ where: { recordId: created.id } }), 2)
+        const results = await Promise.allSettled([
+          service.restore(created.id, dto, userId),
+          service.restore(created.id, dto, userId),
+        ])
+        assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1)
+        const rejected = results.find((result) => result.status === 'rejected')
+        assert.ok(
+          rejected &&
+            rejected.status === 'rejected' &&
+            rejected.reason instanceof ConflictException,
+        )
+        const restored = await db.foodItem.findUniqueOrThrow({ where: { id: created.id } })
+        assert.equal(restored.name, 'Before')
+        assert.deepEqual(restored.nutrition, { protein: 5 })
+        assert.deepEqual(restored.allergens, { milk: false })
+        assert.equal(
+          await db.auditLog.count({ where: { recordId: created.id, action: 'RESTORE' } }),
+          1,
+        )
+        const after = await service.history(created.id, { limit: 20 })
+        assert.equal(after.entries[0].action, 'RESTORE')
+        await service.remove(created.id, userId)
+        const deleted = await service.history(created.id, { limit: 20 })
+        assert.equal(deleted.current, null)
+        assert.equal(deleted.entries[0].action, 'DELETE')
       },
     )
 

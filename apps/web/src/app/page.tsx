@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import { canManageFoods } from '@/lib/food-permissions'
+import Image from 'next/image'
 
 export default function HomePage() {
   const { data: session, status } = useSession()
@@ -34,7 +35,7 @@ export default function HomePage() {
         <h1 className="text-4xl font-bold">KajAI</h1>
         <div className="flex flex-col items-center gap-2 text-center">
           {session.user.image && (
-            <img src={session.user.image} alt="Profilkép" className="h-16 w-16 rounded-full" />
+            <Image src={session.user.image} alt="Profilkép" className="h-16 w-16 rounded-full" />
           )}
           <p className="font-medium">{session.user.name}</p>
           <p className="text-sm text-gray-500">{session.user.email}</p>
