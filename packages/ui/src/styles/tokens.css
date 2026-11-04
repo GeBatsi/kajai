@@ -1,0 +1,127 @@
+/*
+ * KajAI design tokenek (KAI-76)
+ *
+ * Forrás: az "Organic" design rendszer formái/tipográfiája + a KajAI logó
+ * színei (petrol + arany). A színek "R G B" csatornaként vannak megadva, hogy
+ * Tailwindben az átlátszóság-módosító is működjön (pl. `bg-primary/80`).
+ * A hex érték mindenhol ott van kommentben.
+ *
+ * Sötét mód: a <html> elemre kerülő `.dark` osztály írja felül a szemantikus
+ * tokeneket. A márkaskálák (teal, amber, neutral) mindkét módban azonosak.
+ */
+
+@import '@fontsource/caprasimo/400.css';
+@import '@fontsource-variable/figtree/wght.css';
+
+:root {
+  /* ── Márkaskálák ─────────────────────────────────────────── */
+  --teal-50: 239 246 243; /* #eff6f3 */
+  --teal-100: 220 234 229; /* #dceae5 */
+  --teal-300: 143 201 187; /* #8fc9bb */
+  --teal-400: 107 165 151; /* #6ba597 */
+  --teal-500: 63 128 113; /* #3f8071 – logó petrol */
+  --teal-700: 43 92 80; /* #2b5c50 */
+  --teal-900: 24 51 45; /* #18332d */
+
+  --amber-100: 251 236 211; /* #fbecd3 */
+  --amber-500: 223 159 60; /* #df9f3c – logó arany */
+  --amber-700: 176 118 31; /* #b0761f */
+  --amber-900: 122 81 17; /* #7a5111 */
+
+  --neutral-100: 249 244 237; /* #f9f4ed */
+  --neutral-200: 238 231 219; /* #eee7db */
+  --neutral-300: 220 211 196; /* #dcd3c4 */
+  --neutral-400: 192 182 165; /* #c0b6a5 */
+  --neutral-500: 161 151 134; /* #a19786 */
+  --neutral-600: 130 121 106; /* #82796a */
+  --neutral-700: 100 92 80; /* #645c50 */
+  --neutral-800: 71 66 56; /* #474238 */
+  --neutral-900: 46 43 37; /* #2e2b25 */
+
+  /* ── Szemantikus színek (világos) ────────────────────────── */
+  --background: 245 234 216; /* #f5ead8 – oldal háttér */
+  --foreground: 32 30 29; /* #201e1d – tinta */
+  --card: 247 239 223; /* #f7efdf */
+  --card-foreground: 32 30 29;
+  --popover: 249 244 237; /* #f9f4ed */
+  --popover-foreground: 32 30 29;
+  --primary: 63 128 113; /* #3f8071 */
+  --primary-hover: 43 92 80; /* #2b5c50 */
+  --primary-foreground: 255 255 255;
+  --secondary: 223 159 60; /* #df9f3c */
+  --secondary-hover: 205 141 44; /* #cd8d2c */
+  --secondary-foreground: 32 30 29;
+  --muted: 235 221 197; /* #ebddc5 – felület */
+  --muted-foreground: 100 92 80; /* #645c50 */
+  --accent: 220 234 229; /* #dceae5 – hover / kiemelt felület */
+  --accent-foreground: 43 92 80;
+  --destructive: 176 67 31; /* #b0431f */
+  --destructive-foreground: 255 255 255;
+  --success: 86 99 63; /* #56633f */
+  --success-foreground: 255 255 255;
+  --border: 220 211 196; /* #dcd3c4 */
+  --input: 220 211 196;
+  --ring: 63 128 113;
+
+  /* ── Tipográfia ──────────────────────────────────────────── */
+  --font-heading: 'Caprasimo', system-ui, sans-serif;
+  --font-body: 'Figtree Variable', 'Figtree', system-ui, sans-serif;
+
+  --text-h1: 2.625rem; /* 42px */
+  --text-h2: 2rem; /* 32px */
+  --text-h3: 1.5625rem; /* 25px */
+  --text-h4: 1.25rem; /* 20px */
+  --text-h5: 1rem; /* 16px */
+  --text-h6: 0.8125rem; /* 13px, nagybetűs */
+  --text-body: 0.9375rem; /* 15px */
+  --text-small: 0.8125rem; /* 13px */
+  --text-caption: 0.75rem; /* 12px */
+
+  --leading-heading: 1.12;
+  --leading-body: 1.55;
+  --tracking-heading: -0.015em;
+
+  /* ── Forma ───────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 28px;
+  --radius-card: 32px; /* radius-lg × 1.15 */
+
+  --shadow-color: 46 43 37; /* #2e2b25 */
+  --shadow-sm: 0 1px 2px rgb(var(--shadow-color) / 0.14);
+  --shadow-md: 0 3px 10px rgb(var(--shadow-color) / 0.16);
+  --shadow-lg: 0 12px 32px rgb(var(--shadow-color) / 0.22);
+}
+
+.dark {
+  --background: 29 27 24; /* #1d1b18 */
+  --foreground: 245 234 216; /* #f5ead8 */
+  --card: 46 43 37; /* #2e2b25 */
+  --card-foreground: 245 234 216;
+  --popover: 46 43 37;
+  --popover-foreground: 245 234 216;
+  --primary: 107 165 151; /* #6ba597 */
+  --primary-hover: 143 201 187; /* #8fc9bb */
+  --primary-foreground: 16 32 28; /* #10201c */
+  --secondary: 223 159 60; /* #df9f3c */
+  --secondary-hover: 235 178 88; /* #ebb258 */
+  --secondary-foreground: 32 30 29;
+  --muted: 58 54 46; /* #3a362e */
+  --muted-foreground: 192 182 165; /* #c0b6a5 */
+  --accent: 36 64 58; /* #24403a */
+  --accent-foreground: 207 229 222; /* #cfe5de */
+  --destructive: 224 113 74; /* #e0714a */
+  --destructive-foreground: 32 30 29;
+  --success: 174 191 146; /* #aebf92 */
+  --success-foreground: 32 30 29;
+  --border: 71 66 56; /* #474238 */
+  --input: 71 66 56;
+  --ring: 107 165 151;
+
+  --shadow-color: 0 0 0;
+  --shadow-sm: 0 1px 2px rgb(var(--shadow-color) / 0.4);
+  --shadow-md: 0 3px 10px rgb(var(--shadow-color) / 0.45);
+  --shadow-lg: 0 12px 32px rgb(var(--shadow-color) / 0.55);
+
+  color-scheme: dark;
+}

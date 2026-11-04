@@ -40,3 +40,6 @@ prisma/migrations/dev.db*
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Storybook
+storybook-static/
