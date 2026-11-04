@@ -8,7 +8,10 @@
     "start": "node dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage"
   },
   "dependencies": {
     "@kajai/db": "workspace:*",
@@ -43,7 +46,46 @@
     "@types/jest": "^30.0.0",
     "@types/nodemailer": "^8.0.1",
     "@types/passport-jwt": "^4.0.1",
+    "jest": "^30.5.2",
     "prisma": "^5.22.0",
+    "ts-jest": "^29.4.14",
     "typescript": "^5.4.5"
+  },
+  "jest": {
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "testPathIgnorePatterns": [
+      "audit/audit.service.spec.ts",
+      "auth/auth.controller.spec.ts",
+      "auth/auth.service.spec.ts",
+      "foods/foods.controller.spec.ts",
+      "foods/foods.service.spec.ts",
+      "ingredients/ingredients.controller.spec.ts",
+      "ingredients/ingredients.service.spec.ts",
+      "mail-token/mail-token.service.spec.ts",
+      "mail/mail.service.spec.ts",
+      "product-availability/product-availability.controller.spec.ts",
+      "product-availability/product-availability.service.spec.ts",
+      "stores/stores.controller.spec.ts",
+      "stores/stores.service.spec.ts",
+      "token/token.service.spec.ts",
+      "users/users.controller.spec.ts",
+      "users/users.service.spec.ts"
+    ],
+    "collectCoverageFrom": ["users/nutrition.util.ts"],
+    "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": {
+        "branches": 90,
+        "functions": 90,
+        "lines": 90,
+        "statements": 90
+      }
+    },
+    "testEnvironment": "node"
   }
 }
