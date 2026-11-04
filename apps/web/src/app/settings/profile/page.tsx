@@ -1,0 +1,267 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getApiErrorMessage, getMyProfile, previewMyProfile, updateMyProfile, type UpdateProfileInput } from '@/lib/api'
+import { ACTIVITY_LEVEL_OPTIONS, GENDER_OPTIONS, GOAL_TYPE_OPTIONS } from '@/lib/profile-labels'
+import type { ActivityLevel, GoalType } from '@kajai/types'
+
+const inputClass =
+  'w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
+const selectClass = inputClass + ' bg-white'
+const errorInputClass = 'border-red-400 focus:border-red-500'
+
+const todayStr = new Date().toISOString().slice(0, 10)
+
+export default function ProfileSettingsPage() {
+  const queryClient = useQueryClient()
+  const { data: profile, isLoading } = useQuery({ queryKey: ['profile'], queryFn: getMyProfile })
+
+  const [gender, setGender] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [heightCm, setHeightCm] = useState('')
+  const [weightKg, setWeightKg] = useState('')
+  const [bodyFatPct, setBodyFatPct] = useState('')
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>('SEDENTARY')
+  const [goalType, setGoalType] = useState<GoalType>('MAINTENANCE')
+
+  const [fieldErrors, setFieldErrors] = useState<{ dateOfBirth?: string; bodyFatPct?: string }>({})
+
+  useEffect(() => {
+    if (!profile) return
+    setGender(profile.gender ?? '')
+    setDateOfBirth(profile.dateOfBirth ? String(profile.dateOfBirth).slice(0, 10) : '')
+    setHeightCm(profile.heightCm?.toString() ?? '')
+    setWeightKg(profile.weightKg?.toString() ?? '')
+    setBodyFatPct(profile.bodyFatPct?.toString() ?? '')
+    setActivityLevel(profile.activityLevel)
+    setGoalType(profile.goalType)
+  }, [profile])
+
+  const formInput = useMemo<UpdateProfileInput>(
+    () => ({
+      gender: gender || undefined,
+      dateOfBirth: dateOfBirth || undefined,
+      heightCm: heightCm ? Number(heightCm) : undefined,
+      weightKg: weightKg ? Number(weightKg) : undefined,
+      bodyFatPct: bodyFatPct ? Number(bodyFatPct) : undefined,
+      activityLevel,
+      goalType,
+    }),
+    [gender, dateOfBirth, heightCm, weightKg, bodyFatPct, activityLevel, goalType],
+  )
+
+  // Gépelés közben nem kérdezzük le minden leütésre az előnézetet.
+  const [previewInput, setPreviewInput] = useState(formInput)
+  useEffect(() => {
+    const timer = setTimeout(() => setPreviewInput(formInput), 400)
+    return () => clearTimeout(timer)
+  }, [formInput])
+
+  // Csak olyan adatokkal kérünk előnézetet, amit a szerver el is fogadna.
+  const previewable =
+    Boolean(profile) &&
+    !(previewInput.dateOfBirth && previewInput.dateOfBirth > todayStr) &&
+    !(previewInput.heightCm !== undefined && previewInput.heightCm < 50) &&
+    !(previewInput.weightKg !== undefined && previewInput.weightKg < 20) &&
+    !(previewInput.bodyFatPct !== undefined && (previewInput.bodyFatPct < 0 || previewInput.bodyFatPct > 100))
+
+  const { data: preview } = useQuery({
+    queryKey: ['profile-preview', previewInput],
+    queryFn: () => previewMyProfile(previewInput),
+    enabled: previewable,
+    placeholderData: keepPreviousData,
+    retry: false,
+  })
+
+  const isDirty =
+    Boolean(profile) &&
+    (gender !== (profile!.gender ?? '') ||
+      dateOfBirth !== (profile!.dateOfBirth ? String(profile!.dateOfBirth).slice(0, 10) : '') ||
+      heightCm !== (profile!.heightCm?.toString() ?? '') ||
+      weightKg !== (profile!.weightKg?.toString() ?? '') ||
+      bodyFatPct !== (profile!.bodyFatPct?.toString() ?? '') ||
+      activityLevel !== profile!.activityLevel ||
+      goalType !== profile!.goalType)
+
+  const mutation = useMutation({
+    mutationFn: () => updateMyProfile(formInput),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['profile'], updated)
+      setFieldErrors({})
+    },
+  })
+
+  function validate(): boolean {
+    const errors: typeof fieldErrors = {}
+    if (dateOfBirth && dateOfBirth > todayStr) {
+      errors.dateOfBirth = 'A születési dátum nem lehet jövőbeli.'
+    }
+    if (bodyFatPct && (Number(bodyFatPct) < 0 || Number(bodyFatPct) > 100)) {
+      errors.bodyFatPct = 'A testzsír %-nak 0 és 100 között kell lennie.'
+    }
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  function handleSave() {
+    if (!validate()) return
+    mutation.mutate()
+  }
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <p className="text-gray-500">Betöltés...</p>
+      </main>
+    )
+  }
+
+  return (
+    <main className="flex min-h-screen justify-center bg-gray-50 px-4 py-10">
+      <div className="w-full max-w-lg">
+        <Link href="/" className="mb-4 inline-block text-sm text-gray-500 hover:underline">
+          ← Vissza a főoldalra
+        </Link>
+        <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-8">
+          <h1 className="mb-6 text-xl font-bold text-gray-900">Profil beállítások</h1>
+
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1 text-sm text-gray-600">
+              Nem
+              <select value={gender} onChange={(e) => setGender(e.target.value)} className={selectClass}>
+                <option value="">Válassz</option>
+                {GENDER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-gray-600">
+              Születési dátum
+              <input
+                type="date"
+                value={dateOfBirth}
+                max={todayStr}
+                onChange={(e) => {
+                  setDateOfBirth(e.target.value)
+                  setFieldErrors((prev) => ({ ...prev, dateOfBirth: undefined }))
+                }}
+                className={`${inputClass} appearance-none ${fieldErrors.dateOfBirth ? errorInputClass : ''}`}
+              />
+              {fieldErrors.dateOfBirth && <span className="text-xs text-red-600">{fieldErrors.dateOfBirth}</span>}
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex flex-col gap-1 text-sm text-gray-600">
+                Magasság (cm)
+                <input
+                  type="number"
+                  min={0}
+                  value={heightCm}
+                  onChange={(e) => setHeightCm(e.target.value)}
+                  className={inputClass}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm text-gray-600">
+                Testtömeg (kg)
+                <input
+                  type="number"
+                  min={0}
+                  value={weightKg}
+                  onChange={(e) => setWeightKg(e.target.value)}
+                  className={inputClass}
+                />
+              </label>
+            </div>
+            <label className="flex flex-col gap-1 text-sm text-gray-600">
+              Testzsír % (opcionális)
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={bodyFatPct}
+                onChange={(e) => {
+                  setBodyFatPct(e.target.value)
+                  setFieldErrors((prev) => ({ ...prev, bodyFatPct: undefined }))
+                }}
+                className={`${inputClass} ${fieldErrors.bodyFatPct ? errorInputClass : ''}`}
+              />
+              {fieldErrors.bodyFatPct && <span className="text-xs text-red-600">{fieldErrors.bodyFatPct}</span>}
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm text-gray-600">
+              Aktivitás szint
+              <select
+                value={activityLevel}
+                onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)}
+                className={selectClass}
+              >
+                {ACTIVITY_LEVEL_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm text-gray-600">
+              Cél
+              <select
+                value={goalType}
+                onChange={(e) => setGoalType(e.target.value as GoalType)}
+                className={selectClass}
+              >
+                {GOAL_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {preview && (
+            <div className="mt-6">
+              <p className="mb-2 text-xs text-gray-500">
+                {isDirty ? 'Előnézet – a változtatások még nincsenek mentve' : 'Jelenlegi kereted'}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <SummaryStat label="Napi kalóriakeret" value={`${preview.dailyKcal} kcal`} />
+                <SummaryStat label="TDEE" value={`${preview.tdeeKcal} kcal`} />
+                <SummaryStat label="Fehérje" value={`${preview.proteinG} g`} />
+                <SummaryStat label="Szénhidrát" value={`${preview.carbsG} g`} />
+                <SummaryStat label="Zsír" value={`${preview.fatG} g`} />
+              </div>
+            </div>
+          )}
+          {mutation.isSuccess && !isDirty && <p className="mt-4 text-sm text-green-700">Mentve.</p>}
+          {mutation.isError && (
+            <p className="mt-4 text-sm text-red-600">
+              {getApiErrorMessage(mutation.error, 'Hiba történt a mentés közben.')}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={mutation.isPending}
+            className="mt-6 w-full rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {mutation.isPending ? 'Mentés...' : 'Mentés'}
+          </button>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+function SummaryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-gray-50 p-3">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-base font-bold text-gray-900 sm:text-lg">{value}</p>
+    </div>
+  )
+}
