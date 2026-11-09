@@ -48,6 +48,8 @@ const { getAuthOptions } = loadSource('lib/auth.ts', {
   },
 })
 let uiSession
+// Keep profile loading and onboarding out of these role-based access tests.
+const profile = { dailyKcal: 2000, proteinG: 100, carbsG: 250, fatG: 67 }
 const HomePage = loadSource('app/page.tsx', {
   'next-auth/react': {
     useSession: () => ({
@@ -56,12 +58,18 @@ const HomePage = loadSource('app/page.tsx', {
     }),
   },
   'next/navigation': { useRouter: () => ({ replace: () => {} }) },
+  '@tanstack/react-query': {
+    useQuery: ({ enabled }) => ({ data: enabled ? profile : undefined, isLoading: false }),
+  },
+  '@/lib/api': { getMyProfile: async () => profile },
   'next/link': {
     __esModule: true,
     default: ({ href, children, ...props }) =>
       React.createElement('a', { href, ...props }, children),
   },
   '@/components/layout/Header': { __esModule: true, default: () => null },
+  '@/components/profile/calorie-progress-bar': { CalorieProgressBar: () => null },
+  '@/components/profile/macro-donut-chart': { MacroDonutChart: () => null },
   '@/lib/food-permissions': permissions,
 }).default
 
@@ -90,6 +98,7 @@ const FoodLayout = loadSource('app/moderator/foods/layout.tsx', {
 
 function assertButtons(visible) {
   const html = renderToStaticMarkup(React.createElement(HomePage))
+  assert.equal(html.includes('href="/settings/profile"'), Boolean(uiSession))
   assert.equal(html.includes('href="/moderator/foods/new"'), visible)
   assert.equal(html.includes('href="/moderator/foods/edit"'), visible)
 }

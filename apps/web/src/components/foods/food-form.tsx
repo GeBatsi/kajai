@@ -462,6 +462,9 @@ export default function FoodForm({
                     <Image
                       src={imagePreviewUrl || currentImageUrl || ''}
                       alt={imageFile ? 'Új kép előnézete' : `${values.name} jelenlegi képe`}
+                      width={160}
+                      height={160}
+                      unoptimized={Boolean(imagePreviewUrl)}
                       className="h-40 w-40 rounded-xl border border-slate-200 object-cover"
                     />
                   </div>
