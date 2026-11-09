@@ -6,7 +6,7 @@ on:
 
 jobs:
   ci:
-    name: Lint · Type-check · Test
+    name: Lint · Type-check · Test · Build
     runs-on: ubuntu-latest
 
     services:
@@ -28,6 +28,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kajai_test
       NEXTAUTH_SECRET: ci-secret
       NEXTAUTH_URL: http://localhost:4000
+      NEXT_PUBLIC_API_URL: http://localhost:4001
+      NEXT_TELEMETRY_DISABLED: 1
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
@@ -54,3 +56,38 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  docker:
+    name: Docker Compose smoke test
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate compose file
+        run: docker compose config --quiet
+
+      - name: Start infrastructure and API
+        run: docker compose up -d --build --wait --wait-timeout 300 postgres redis meilisearch api
+
+      - name: API health check
+        run: curl -fsS http://localhost:4001/api/health
+
+      - name: Start web
+        run: docker compose up -d --build --wait --wait-timeout 300 web
+
+      - name: Web check
+        run: curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:4000/login
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
