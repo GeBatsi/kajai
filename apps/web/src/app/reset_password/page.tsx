@@ -1,11 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50 px-4">
+          <div role="status" className="text-sm text-gray-500">
+            Betöltés...
+          </div>
+        </main>
+      }
+    >
+      <ResetPasswordPageContent />
+    </Suspense>
+  )
+}
+
+function ResetPasswordPageContent() {
   const searchParams = useSearchParams()
 
   const token = searchParams.get('id')
