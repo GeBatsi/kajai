@@ -21,6 +21,8 @@
     },
     "test": {
       "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["CI", "FOOD_TEST_DATABASE_URL"],
       "outputs": ["coverage/**"]
     },
     "generate": {

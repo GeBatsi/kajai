@@ -190,8 +190,16 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         return token
       },
       async session({ session, token }) {
-        session.user.id = token.userId as string
-        session.user.role = token.role as string
+        const userId = typeof token.userId === 'string' && token.userId.trim() ? token.userId : ''
+        const dbUser = userId
+          ? await prisma.user.findUnique({
+              where: { id: userId },
+              select: { role: true },
+            })
+          : null
+
+        session.user.id = userId
+        session.user.role = dbUser?.role ?? 'GUEST'
         return session
       },
     },

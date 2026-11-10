@@ -101,6 +101,23 @@ kajai/
 | Review | Min. 1 approval szükséges merge előtt |
 | CI | Lint + type-check + test + build és Docker füstteszt minden PR-on |
 
+## Tesztek
+
+A projekt gyökerében futtatott `pnpm test` elindítja az API `test:foods` és
+`test:auth`, valamint a frontend `test:food-access`, `test:food-fields` és
+`test:food-history` tesztjeit. A külön tesztparancsok továbbra is használhatók
+például a `pnpm --filter @kajai/api test:foods` paranccsal.
+
+A PostgreSQL-integrációs tesztekhez add meg a `FOOD_TEST_DATABASE_URL` környezeti
+változóban egy tesztadatbázis kapcsolati címét. A teszt saját, véletlen nevű sémát
+hoz létre, és a futás végén eltávolítja azt; a kapcsolatnak ehhez megfelelő
+jogosultság kell. Helyben a változó nélkül az adatbázisos teszt jelzetten kimarad.
+CI-ben a változó hiánya hibát okoz; a workflow a PostgreSQL-szolgáltatást használja.
+A Turbo a teszteredményeket nem gyorsítótárazza.
+
+Ez a parancs a fenti regressziós teszteket futtatja. A régi Jest-sablontesztek és
+az `out/` alatti helyi böngészős ellenőrző szkriptek nem részei ennek a futtatásnak.
+
 ## Linkek
 
 - [Jira Backlog](https://gebatsi.atlassian.net/jira/software/projects/KAI/boards)

@@ -55,6 +55,8 @@ jobs:
         run: pnpm type-check
 
       - name: Test
+        env:
+          FOOD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kajai_test
         run: pnpm test
 
       - name: Build
@@ -68,6 +70,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # Startup checks do not upload images; these are dummy values, not real credentials.
+      # Compose passes this file to the containers via env_file.
+      - name: Configure storage for smoke test
+        run: |
+          cat > .env <<'EOF'
+          S3_ENDPOINT=http://127.0.0.1:9000
+          S3_REGION=us-east-1
+          S3_ACCESS_KEY_ID=ci-dummy-access-key
+          S3_SECRET_ACCESS_KEY=ci-dummy-secret-key
+          S3_BUCKET=ci-smoke-test
+          S3_PUBLIC_BASE_URL=http://127.0.0.1:9000/ci-smoke-test
+          EOF
 
       - name: Validate compose file
         run: docker compose config --quiet

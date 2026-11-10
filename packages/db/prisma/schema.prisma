@@ -131,6 +131,8 @@ model FoodItem {
   inventoryItems      InventoryItem[]
   favorites           Favorite[]
 
+  // BASIC name/category uniqueness uses a partial expression index maintained in
+  // migration 20261025120000_unique_basic_food_name_category (not expressible in Prisma 5).
   @@index([name])
   @@map("food_items")
 }

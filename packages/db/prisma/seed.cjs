@@ -10,10 +10,10 @@ const foods = [
     defaultUnit: 'g',
     density: null,
     nutrition: {
-      kcal: 120,
-      proteinG: 23,
-      carbsG: 0,
-      fatG: 2,
+      energyKcal: 120,
+      protein: 23,
+      carbs: 0,
+      fat: 2,
     },
   },
   {
@@ -23,10 +23,10 @@ const foods = [
     defaultUnit: 'g',
     density: null,
     nutrition: {
-      kcal: 365,
-      proteinG: 7,
-      carbsG: 80,
-      fatG: 1,
+      energyKcal: 365,
+      protein: 7,
+      carbs: 80,
+      fat: 1,
     },
   },
   {
@@ -36,10 +36,10 @@ const foods = [
     defaultUnit: 'db',
     density: null,
     nutrition: {
-      kcal: 155,
-      proteinG: 13,
-      carbsG: 1,
-      fatG: 11,
+      energyKcal: 155,
+      protein: 13,
+      carbs: 1,
+      fat: 11,
     },
   },
   {
@@ -49,10 +49,10 @@ const foods = [
     defaultUnit: 'g',
     density: null,
     nutrition: {
-      kcal: 389,
-      proteinG: 17,
-      carbsG: 66,
-      fatG: 7,
+      energyKcal: 389,
+      protein: 17,
+      carbs: 66,
+      fat: 7,
     },
   },
   {
@@ -62,10 +62,10 @@ const foods = [
     defaultUnit: 'g',
     density: null,
     nutrition: {
-      kcal: 52,
-      proteinG: 0.3,
-      carbsG: 14,
-      fatG: 0.2,
+      energyKcal: 52,
+      protein: 0.3,
+      carbs: 14,
+      fat: 0.2,
     },
   },
 ]

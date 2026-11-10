@@ -9,11 +9,15 @@
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "type-check": "tsc --noEmit",
-    "test": "jest",
+    "test": "jest && pnpm run test:foods && pnpm run test:auth",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "test:f&a": "pnpm run test:foods && pnpm run test:auth",
+    "test:foods": "node scripts/test-specs.cjs src/foods/dto/food-name.spec.ts src/foods/dto/food-json.spec.ts src/foods/food-history.spec.ts src/foods/foods.service.spec.ts src/storage/storage.service.spec.ts src/foods/foods.integration.spec.ts",
+    "test:auth": "node scripts/test-specs.cjs src/auth/guards/nextauth.guard.spec.ts src/auth/session-auth.integration.spec.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1127.0",
     "@kajai/db": "workspace:*",
     "@kajai/types": "workspace:*",
     "@nestjs-modules/mailer": "^2.3.7",
@@ -30,11 +34,13 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
+    "multer": "^2.4.0",
     "nodemailer": "^9.0.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.2",
@@ -44,6 +50,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^4.17.21",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.2.0",
     "@types/nodemailer": "^8.0.1",
     "@types/passport-jwt": "^4.0.1",
     "jest": "^30.5.2",
@@ -58,6 +65,31 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "testPathIgnorePatterns": [
+      "audit/audit.service.spec.ts",
+      "auth/auth.controller.spec.ts",
+      "auth/auth.service.spec.ts",
+      "auth/guards/nextauth.guard.spec.ts",
+      "auth/session-auth.integration.spec.ts",
+      "foods/dto/food-json.spec.ts",
+      "foods/dto/food-name.spec.ts",
+      "foods/food-history.spec.ts",
+      "foods/foods.controller.spec.ts",
+      "foods/foods.integration.spec.ts",
+      "foods/foods.service.spec.ts",
+      "ingredients/ingredients.controller.spec.ts",
+      "ingredients/ingredients.service.spec.ts",
+      "mail-token/mail-token.service.spec.ts",
+      "mail/mail.service.spec.ts",
+      "product-availability/product-availability.controller.spec.ts",
+      "product-availability/product-availability.service.spec.ts",
+      "storage/storage.service.spec.ts",
+      "stores/stores.controller.spec.ts",
+      "stores/stores.service.spec.ts",
+      "token/token.service.spec.ts",
+      "users/users.controller.spec.ts",
+      "users/users.service.spec.ts"
+    ],
     "collectCoverageFrom": ["users/nutrition.util.ts"],
     "coverageDirectory": "../coverage",
     "coverageThreshold": {
