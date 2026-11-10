@@ -12,6 +12,7 @@ import { UsersModule } from './users/users.module';
 import { MailModule } from './mail/mail.module';
 // import { TokenService } from './token/token.service';
 import { TokenModule } from './token/token.module';
+import { HealthController } from './health/health.controller'
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TokenModule } from './token/token.module';
     MailModule,
     TokenModule,
   ],
+  controllers: [HealthController],
   providers: [],
 })
 export class AppModule {}
