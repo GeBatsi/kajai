@@ -58,24 +58,6 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "testPathIgnorePatterns": [
-      "audit/audit.service.spec.ts",
-      "auth/auth.controller.spec.ts",
-      "auth/auth.service.spec.ts",
-      "foods/foods.controller.spec.ts",
-      "foods/foods.service.spec.ts",
-      "ingredients/ingredients.controller.spec.ts",
-      "ingredients/ingredients.service.spec.ts",
-      "mail-token/mail-token.service.spec.ts",
-      "mail/mail.service.spec.ts",
-      "product-availability/product-availability.controller.spec.ts",
-      "product-availability/product-availability.service.spec.ts",
-      "stores/stores.controller.spec.ts",
-      "stores/stores.service.spec.ts",
-      "token/token.service.spec.ts",
-      "users/users.controller.spec.ts",
-      "users/users.service.spec.ts"
-    ],
     "collectCoverageFrom": ["users/nutrition.util.ts"],
     "coverageDirectory": "../coverage",
     "coverageThreshold": {
