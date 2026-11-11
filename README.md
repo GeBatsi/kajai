@@ -54,7 +54,10 @@ pnpm dev
 
 ### Docker Compose
 
-Docker-rel a teljes stack (Postgres, Redis, Meilisearch, API, web) egy paranccsal indul:
+Docker-rel a teljes stack (Postgres, Redis, Meilisearch, API, web) egy paranccsal indul.
+A konténerek a gyökér `.env` fájlból kapják a titkos értékeket, ezért előtte legyen meg
+(`cp .env.local .env`). Az API a tárhely-beállítások (`S3_*`, ld. `.env.example`) nélkül
+nem indul el; a valódi értékek a csapat kulcstárában vannak.
 
 ```bash
 docker compose up -d --build   # web: http://localhost:4000, api: http://localhost:4001/api
