@@ -11,7 +11,8 @@ Minden PR-on és pushon fut:
 
 1. **Lint · Type-check · Test · Build** – `pnpm lint`, `pnpm type-check`, `pnpm test`, `pnpm build`.
 2. **Docker Compose smoke test** – felépíti és elindítja a teljes `docker-compose.yml`-t, majd
-   ellenőrzi az API `/api/health` végpontját és a web `/login` oldalát.
+   ellenőrzi az API `/api/health` végpontját és a web `/login` oldalát. A tárhelyhez ál-értékeket
+   ír egy ideiglenes `.env`-be (indításkor nem tölt fel képet), valódi kulcs nem kell hozzá.
 
 ## Staging deploy (`.github/workflows/deploy-staging.yml`)
 
@@ -42,6 +43,10 @@ a `apps/api/Dockerfile`-t használja). Változók a service-en:
 
 - `DATABASE_URL` (ugyanaz, mint a `STAGING_DATABASE_URL`), `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (a staging web címe),
   `JWT_SECRET`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASSWORD`
+- Tárhely (kötelező, nélküle az API nem indul): `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`,
+  `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_BASE_URL`; opcionálisan
+  `S3_FOOD_IMAGE_PREFIX`, `S3_MAX_FILE_SIZE_BYTES`, `FOOD_IMAGE_MIN_WIDTH` / `_HEIGHT`, `FOOD_IMAGE_MAX_WIDTH` / `_HEIGHT`.
+  Stagingre érdemes külön R2 bucketet és kulcsot használni, ne a fejlesztőit.
 - `API_PORT=4001` és `PORT=4001` (a Railway ezen a porton éri el a konténert)
 
 **Vercel** – új projekt ebből a repóból, *Root Directory*: `apps/web`, framework: Next.js.

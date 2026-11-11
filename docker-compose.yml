@@ -6,8 +6,8 @@
 #   docker compose down -v              # leállítás és az adatok törlése
 #
 # Portok: web 4000, api 4001, postgres 5432, redis 6379, meilisearch 7700.
-# A titkos értékeket (Google OAuth, levelezés stb.) a gyökér .env fájlból veszi,
-# ld. .env.example. A közös Neon dev adatbázis helyett itt saját helyi Postgres fut.
+# A titkos értékeket (Google OAuth, levelezés, tárhely S3_* stb.) a gyökér .env fájlból
+# veszi (cp .env.local .env), ld. .env.example. Az API S3_* nélkül nem indul el. A közös Neon dev adatbázis helyett itt saját helyi Postgres fut.
 
 name: kajai
 
