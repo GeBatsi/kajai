@@ -9,10 +9,11 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
-    "test": "pnpm run test:food-access && pnpm run test:food-fields && pnpm run test:food-history",
+    "test": "pnpm run test:food-access && pnpm run test:food-fields && pnpm run test:food-history && pnpm run test:session-refresh",
     "test:food-access": "node scripts/test-food-access.cjs",
     "test:food-fields": "node scripts/test-food-fields.cjs",
-    "test:food-history": "node scripts/test-food-history.cjs"
+    "test:food-history": "node scripts/test-food-history.cjs",
+    "test:session-refresh": "node scripts/test-session-refresh.cjs"
   },
   "dependencies": {
     "@kajai/db": "workspace:*",
