@@ -69,7 +69,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ## 5. KajAI Project Context
 
 ### Stack
-- **Frontend:** Next.js 14+ (App Router), TypeScript, Tailwind CSS
+- **Frontend:** Next.js 15 (App Router), TypeScript, Tailwind CSS
 - **Backend:** NestJS, TypeScript
 - **Database:** PostgreSQL (primary), Redis (cache/sessions)
 - **Search:** Meilisearch
