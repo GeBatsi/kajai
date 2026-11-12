@@ -20,6 +20,10 @@ async function getAppleClientSecret(): Promise<string> {
     .sign(privateKey)
 }
 
+// Sliding session: every /api/auth/session call (SessionProvider on load and window focus)
+// re-issues the encrypted httpOnly cookie with a fresh expiry, so this is the inactivity limit.
+export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
+
 let _appleSecret: string | null = null
 
 async function resolveAppleSecret(): Promise<string | null> {
@@ -151,7 +155,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         ? [AppleProvider({ clientId: process.env.APPLE_ID, clientSecret: appleSecret })]
         : []),
     ],
-    session: { strategy: 'jwt' },
+    session: { strategy: 'jwt', maxAge: SESSION_MAX_AGE_SECONDS },
     cookies: {
       sessionToken: {
         name: 'kajai-session',
