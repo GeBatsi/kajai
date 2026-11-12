@@ -2,6 +2,7 @@
   "name": "@kajai/types",
   "version": "0.0.1",
   "private": true,
+  "types": "./src/index.ts",
   "scripts": {
     "type-check": "tsc --noEmit"
   },

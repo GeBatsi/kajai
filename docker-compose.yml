@@ -1,0 +1,150 @@
+# KajAI – helyi fejlesztői környezet (KAI-75)
+#
+#   docker compose up -d --build        # minden szolgáltatás (infra + api + web)
+#   docker compose up -d postgres redis # csak az adatbázis és a cache, ha az appot pnpm dev-vel futtatod
+#   docker compose down                 # leállítás (az adatok a volume-okban megmaradnak)
+#   docker compose down -v              # leállítás és az adatok törlése
+#
+# Portok: web 4000, api 4001, postgres 5432, redis 6379, meilisearch 7700.
+# A titkos értékeket (Google OAuth, levelezés, tárhely S3_* stb.) a gyökér .env fájlból
+# veszi (cp .env.local .env), ld. .env.example. Minden kulcs név szerint szerepel lent;
+# .env nélkül helykitöltő értékekkel indul (képfeltöltés, levél, Google-belépés ilyenkor nem megy).
+# A közös Neon dev adatbázis helyett itt saját helyi Postgres fut.
+
+name: kajai
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kajai_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d kajai_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILISEARCH_ADMIN_KEY:-kajai-dev-master-key}
+      MEILI_NO_ANALYTICS: 'true'
+    ports:
+      - '7700:7700'
+    volumes:
+      - meili-data:/meili_data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:7700/health || wget -q --spider http://localhost:7700/health']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kajai_dev
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+      API_PORT: '4001'
+      NEXTAUTH_URL: http://localhost:4000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-kajai-docker-dev-secret}
+      # Az API összes kulcsa név szerint. Az érték a gyökér .env-ből jön (a Compose abból
+      # helyettesít); ha nincs .env, az alábbi alapérték marad, így a stack .env nélkül is
+      # elindul (pl. CI). Az S3_* alapértékek csak helykitöltők: a képfeltöltéshez a valódi
+      # R2-kulcsok kellenek (Notion › KajAI › Kulcsok › Storage).
+      JWT_SECRET: ${JWT_SECRET:-kajai-docker-dev-jwt-secret}
+      MAIL_HOST: ${MAIL_HOST:-smtp.ethereal.email}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://127.0.0.1:9000}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_BUCKET: ${S3_BUCKET:-kajai-local-placeholder}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-local-placeholder-access-key}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-local-placeholder-secret-key}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-http://127.0.0.1:9000/kajai-local-placeholder}
+      S3_FOOD_IMAGE_PREFIX: ${S3_FOOD_IMAGE_PREFIX:-foods/basic}
+      S3_MAX_FILE_SIZE_BYTES: ${S3_MAX_FILE_SIZE_BYTES:-5242880}
+      FOOD_IMAGE_MIN_WIDTH: ${FOOD_IMAGE_MIN_WIDTH:-300}
+      FOOD_IMAGE_MIN_HEIGHT: ${FOOD_IMAGE_MIN_HEIGHT:-300}
+      FOOD_IMAGE_MAX_WIDTH: ${FOOD_IMAGE_MAX_WIDTH:-4000}
+      FOOD_IMAGE_MAX_HEIGHT: ${FOOD_IMAGE_MAX_HEIGHT:-4000}
+    ports:
+      - '4001:4001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:4001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # A NEXT_PUBLIC_* értékek build közben kerülnek a kliens kódba.
+        NEXT_PUBLIC_API_URL: http://localhost:4001
+        NEXT_PUBLIC_APPLE_ENABLED: ${NEXT_PUBLIC_APPLE_ENABLED:-false}
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # A szerveroldali (NextAuth) kód a konténerben fut, ezért ott a postgres a szolgáltatásnév.
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kajai_dev
+      NEXTAUTH_URL: http://localhost:4000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-kajai-docker-dev-secret}
+      NEXT_PUBLIC_API_URL: http://localhost:4001
+      # A web összes kulcsa név szerint (érték a gyökér .env-ből; üresen a szolgáltató ki van kapcsolva).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      APPLE_ID: ${APPLE_ID:-}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+      APPLE_PRIVATE_KEY: ${APPLE_PRIVATE_KEY:-}
+      APPLE_SECRET: ${APPLE_SECRET:-}
+    ports:
+      - '4000:4000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:4000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  redis-data:
+  meili-data:

@@ -45,11 +45,13 @@ export interface UserProfile {
 // ─── Food ─────────────────────────────────────────────────────────────────────
 
 export interface Nutrition {
-  energyKcal: number
-  protein: number
-  carbs: number
+  per?: 100
+  unit?: 'g' | 'ml'
+  energyKcal: number | null
+  protein: number | null
+  carbs: number | null
   sugar: number | null
-  fat: number
+  fat: number | null
   saturatedFat: number | null
   fiber: number | null
   salt: number | null
@@ -68,6 +70,8 @@ export interface Allergen {
   celery: boolean
   mustard: boolean
   lupin: boolean
+  sulphites: boolean
+  molluscs: boolean
 }
 
 export interface FoodItem {
