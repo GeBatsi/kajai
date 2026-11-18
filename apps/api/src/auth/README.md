@@ -15,6 +15,15 @@ adott végpont által megengedett szerepköröket. A kliens `x-user-id` és
 - A szerepkör változása a következő védett kérésnél érvényesül.
 - A korábban nyilvános lekérdezések továbbra is nyilvánosak.
 
+## Session élettartama (KAI-16)
+
+- A session **csúszó**: 30 nap inaktivitás után jár le
+  (`SESSION_MAX_AGE_SECONDS`, `apps/web/src/lib/auth.ts`).
+- Minden `GET /api/auth/session` hívás (a `SessionProvider` oldalbetöltéskor és
+  ablakfókuszkor hívja) újra kiadja a titkosított `kajai-session` sütit friss
+  lejárattal. Külön backend access / refresh token nincs.
+- Teszt: `pnpm --filter @kajai/web test:session-refresh`.
+
 ## Konfiguráció
 
 - A frontend és az API **azonos `NEXTAUTH_SECRET`** értéket használjon.
