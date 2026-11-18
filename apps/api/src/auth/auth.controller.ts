@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, Res, UseGuards,Query } from '@nestjs/common'
-import { Response } from 'express'
-import { NextAuthGuard } from './guards/nextauth.guard'
+import { Body, Controller, Get, Post, Res,Query } from '@nestjs/common'
+import type { Response } from 'express'
+import { Public } from './decorators/public.decorator'
 import { CurrentUser } from './decorators/current-user.decorator'
 import { AuthService, type AuthUser } from './auth.service'
 import { RegisterDto } from './dto/register.dto';
@@ -14,28 +14,31 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Get('me')
-  @UseGuards(NextAuthGuard)
   getMe(@CurrentUser() user: AuthUser) {
     return this.authService.getUserById(user.id)
   }
 
   @Get('verify')
+  @Public()
 verify(@Query() dto:verifyEmail) {
   return this.authService.verifyEmail(dto.id)
 }
 
   @Post('logout')
+  @Public()
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('kajai-session', { path: '/' })
     return { message: 'Sikeres kijelentkezés' }
   }
 
   @Post('login')
+  @Public()
   login(@Body() dto: LoginDto){
     return this.authService.login(dto.email, dto.password);
   }
 
   @Post('register')
+  @Public()
   register(
     @Body() dto: RegisterDto,
   ) {
@@ -43,11 +46,13 @@ verify(@Query() dto:verifyEmail) {
   }
 
   @Post('forgotpassword')
+  @Public()
   forgotpassword(@Body() dto:ForgotPasswordDto){
     return this.authService.forgotPassword(dto.email)
   }
 
   @Post('resetpassword')
+  @Public()
   resetpassword(@Body() dto:ResetPasswordDto){
     return this.authService.resetPassword(dto.email, dto.password, dto.token)
   }

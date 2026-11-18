@@ -4,9 +4,7 @@ import { IngredientsService } from './ingredients.service'
 import { CreateIngredientDto } from './dto/create-ingredient.dto'
 import { UpdateIngredientDto } from './dto/update-ingredient.dto'
 import { HttpCode, HttpStatus } from '@nestjs/common'
-import { NextAuthGuard } from '../auth/guards/nextauth.guard'
-import { RolesGuard } from '../auth/guards/role.guard'
-import { UseGuards } from '@nestjs/common'
+import { Public } from '../auth/decorators/public.decorator'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequestUser } from '../auth/types/request-user.type'
@@ -22,30 +20,31 @@ export class IngredientsController {
   constructor(private readonly ingredientsService: IngredientsService) {}
 
   @Post()
-  @UseGuards(NextAuthGuard, RolesGuard)
   @Roles('ADMIN')
   create(@Body() dto: CreateIngredientDto, @CurrentUser() user: RequestUser): Promise<IngredientWithFoodItem> {
     return this.ingredientsService.create(dto, user.id)
   }
 
   @Get()
+  @Public()
   findAll(): Promise<IngredientWithFoodItem[]> {
     return this.ingredientsService.findAll()
   }
 
   // Fontos: ez legyen a :id route ELŐTT.
   @Get('food/:foodItemId')
+  @Public()
   findByFoodItemId(@Param('foodItemId') foodItemId: string): Promise<IngredientWithFoodItem> {
     return this.ingredientsService.findByFoodItemId(foodItemId)
   }
 
   @Get(':id')
+  @Public()
   findOne(@Param('id') id: string): Promise<IngredientWithFoodItem> {
     return this.ingredientsService.findOne(id)
   }
 
   @Patch(':id')
-  @UseGuards(NextAuthGuard, RolesGuard)
   @Roles('ADMIN')
   update(
     @Param('id') id: string,
@@ -56,7 +55,6 @@ export class IngredientsController {
   }
 
   @Delete(':id')
-  @UseGuards(NextAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<void> {

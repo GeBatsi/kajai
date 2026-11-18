@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { test } from 'node:test'
-import { Controller, Get, UseGuards, ValidationPipe } from '@nestjs/common'
+import { Controller, Get, ValidationPipe } from '@nestjs/common'
+import { APP_GUARD } from '@nestjs/core'
+import { RolesGuard } from './guards/role.guard'
 import { ConfigService } from '@nestjs/config'
 import { Test } from '@nestjs/testing'
 import { Role } from '@kajai/db'
@@ -19,6 +21,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { CurrentUser } from './decorators/current-user.decorator'
 import { NextAuthGuard } from './guards/nextauth.guard'
 import { RequestUser } from './types/request-user.type'
+import { HealthController } from '../health/health.controller'
 
 const { encode } = createRequire(resolve(__dirname, '../../../web/package.json'))(
   'next-auth/jwt',
@@ -33,7 +36,6 @@ const { encode } = createRequire(resolve(__dirname, '../../../web/package.json')
 @Controller('session-test')
 class SessionTestController {
   @Get()
-  @UseGuards(NextAuthGuard)
   currentUser(@CurrentUser() user: RequestUser) {
     return user
   }
@@ -55,6 +57,8 @@ test('real HTTP authorization on every formerly header-authenticated endpoint', 
         'updateImage',
         'deleteImage',
         'findAll',
+        'findOne',
+        'findByFoodItemId',
         'history',
         'restore',
       ].map((method) => [
@@ -72,16 +76,20 @@ test('real HTTP authorization on every formerly header-authenticated endpoint', 
       StoresController,
       ProductAvailabilityController,
       SessionTestController,
+      HealthController,
     ],
     providers: [
+      { provide: APP_GUARD, useClass: NextAuthGuard },
+      { provide: APP_GUARD, useClass: RolesGuard },
       { provide: ConfigService, useValue: { get: (key: string) => config[key] } },
       {
         provide: PrismaService,
         useValue: {
+          $queryRaw: async () => [{ result: 1 }],
           user: {
             findUnique: async ({ where }: { where: { id: string } }) => {
               assert.equal(where.id, 'real-user')
-              return userExists ? { id: where.id, role } : null
+              return userExists ? { id: where.id, role, bannedAt: null } : null
             },
           },
         },
@@ -345,9 +353,16 @@ test('real HTTP authorization on every formerly header-authenticated endpoint', 
     userExists = true
   })
 
-  await t.test('existing public food reads remain accessible without a session', async () => {
-    const response = await fetch(`${base}/api/foods`)
-    assert.equal(response.status, 200)
-    assert.deepEqual(await response.json(), [])
-  })
+  for (const path of [
+    '/foods', '/foods/test-id', '/ingredients', '/ingredients/test-id',
+    '/ingredients/food/food-id', '/stores', '/stores/test-id',
+    '/product-availability', '/product-availability/test-id', '/health',
+  ]) {
+    await t.test(`public read ${path} accepts no session and malformed cookies`, async () => {
+      for (const cookie of [undefined, 'kajai-session=invalid']) {
+        const response = await fetch(`${base}/api${path}`, { headers: cookie ? { Cookie: cookie } : undefined })
+        assert.equal(response.status, 200, await response.text())
+      }
+    })
+  }
 })

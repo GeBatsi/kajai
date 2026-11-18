@@ -1,4 +1,5 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common'
+import { Public } from '../auth/decorators/public.decorator'
 import { PrismaService } from '../prisma/prisma.service'
 
 // Docker healthcheck, CI füstteszt és a staging deploy ellenőrzése használja.
@@ -7,6 +8,7 @@ export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
+  @Public()
   async check() {
     try {
       await this.prisma.$queryRaw`SELECT 1`

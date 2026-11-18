@@ -7,21 +7,31 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { Reflector } from '@nestjs/core'
+import { Role } from '@kajai/db'
 import { hkdfSync } from 'node:crypto'
 import { jwtDecrypt } from 'jose'
 import { PrismaService } from '../../prisma/prisma.service'
 import { RequestWithUser } from '../types/request-user.type'
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
 
 @Injectable()
 export class NextAuthGuard implements CanActivate {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>()
     delete request.user
+    if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ])) {
+      return true
+    }
     const token = this.sessionToken(request.cookies)
     if (!token) throw new UnauthorizedException('Bejelentkezés szükséges.')
 
@@ -55,9 +65,13 @@ export class NextAuthGuard implements CanActivate {
     // Never trust the role in the token or client headers: changes apply on the next request.
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, role: true },
+      select: { id: true, role: true, bannedAt: true },
     })
     if (!user) throw new UnauthorizedException('A munkamenet felhasználója nem található.')
+    if (user.bannedAt !== null) throw new ForbiddenException('A felhasználó hozzáférése tiltva van.')
+    if (user.role === Role.GUEST) {
+      throw new ForbiddenException('Regisztrált felhasználói jogosultság szükséges.')
+    }
 
     request.user = { id: user.id, role: user.role }
     return true

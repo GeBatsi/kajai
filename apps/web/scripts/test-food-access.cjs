@@ -31,6 +31,7 @@ function loadSource(relativePath, overrides = {}) {
 
 const permissions = loadSource('lib/food-permissions.ts')
 let dbRole = 'USER'
+let bannedAt = null
 let dbError
 let databaseReads = 0
 const { getAuthOptions } = loadSource('lib/auth.ts', {
@@ -39,9 +40,9 @@ const { getAuthOptions } = loadSource('lib/auth.ts', {
       user: {
         findUnique: async (query) => {
           databaseReads++
-          assert.deepEqual(query, { where: { id: 'test-user' }, select: { role: true } })
+          assert.deepEqual(query, { where: { id: 'test-user' }, select: { role: true, bannedAt: true } })
           if (dbError) throw dbError
-          return dbRole === null ? null : { role: dbRole }
+          return dbRole === null ? null : { role: dbRole, bannedAt }
         },
       },
     },
@@ -125,7 +126,7 @@ for (const role of ['ADMIN', 'MODERATOR', 'USER', 'GUEST', null]) {
       const result = await FoodLayout({ children })
       assert.ok(renderToStaticMarkup(result).includes('protected-form'))
     } else {
-      await assert.rejects(FoodLayout({ children }), (error) => error.destination === '/')
+      await assert.rejects(FoodLayout({ children }), (error) => error.destination === (role === null ? '/login' : '/'))
     }
   })
 }
@@ -178,5 +179,19 @@ test('database failure cannot fall back to an old ADMIN role', async () => {
     await assert.rejects(FoodLayout({ children: 'editor' }), (error) => error === dbError)
   } finally {
     dbError = undefined
+  }
+})
+
+test('a banned admin loses management buttons and direct page access', async () => {
+  dbRole = 'ADMIN'
+  bannedAt = new Date()
+  token = { userId: 'test-user', role: 'ADMIN' }
+  try {
+    uiSession = await sessionForToken(await getAuthOptions())
+    assertButtons(false)
+    assert.equal(uiSession.user.isBanned, true)
+    await assert.rejects(FoodLayout({ children: 'editor' }), (error) => error.destination === '/login')
+  } finally {
+    bannedAt = null
   }
 })

@@ -9,6 +9,7 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
 import { ConfigService } from '@nestjs/config'
 import { Role } from '@kajai/db'
 import { EncryptJWT, SignJWT } from 'jose'
@@ -34,15 +35,15 @@ const session = (
 ) => encode({ token, secret, maxAge })
 
 function setup(cookies: unknown = {}, method = 'GET', requestOrigin?: string) {
-  const findUnique = mock.fn<(...args: unknown[]) => Promise<{ id: string; role: Role } | null>>(
-    async () => ({ id: 'real-user', role: Role.USER }),
+  const findUnique = mock.fn<(...args: unknown[]) => Promise<{ id: string; role: Role; bannedAt: Date | null } | null>>(
+    async () => ({ id: 'real-user', role: Role.USER, bannedAt: null }),
   )
   const values: Record<string, string | undefined> = {
     NEXTAUTH_SECRET: secret,
     NEXTAUTH_URL: origin,
   }
   const config = { get: (name: string) => values[name] } as ConfigService
-  const guard = new NextAuthGuard({ user: { findUnique } } as unknown as PrismaService, config)
+  const guard = new NextAuthGuard({ user: { findUnique } } as unknown as PrismaService, config, new Reflector())
   const request = {
     method,
     cookies,
@@ -53,7 +54,7 @@ function setup(cookies: unknown = {}, method = 'GET', requestOrigin?: string) {
     },
     user: { id: 'untrusted-prior-user', role: Role.ADMIN },
   } as unknown as RequestWithUser
-  const context = { switchToHttp: () => ({ getRequest: () => request }) } as ExecutionContext
+  const context = { getHandler: () => setup, getClass: () => NextAuthGuard, switchToHttp: () => ({ getRequest: () => request }) } as unknown as ExecutionContext
   return { guard, context, request, findUnique, values }
 }
 
@@ -62,13 +63,13 @@ test('real NextAuth cookie uses the verified ID and current database role, ignor
   assert.equal(await guard.canActivate(context), true)
   assert.deepEqual(request.user, { id: 'real-user', role: Role.USER })
   assert.deepEqual(findUnique.mock.calls[0].arguments, [
-    { where: { id: 'real-user' }, select: { id: true, role: true } },
+    { where: { id: 'real-user' }, select: { id: true, role: true, bannedAt: true } },
   ])
 })
 
 test('role changes take effect on the next request with the same session cookie', async () => {
   const { guard, context, request, findUnique } = setup({ 'kajai-session': await session() })
-  findUnique.mock.mockImplementationOnce(async () => ({ id: 'real-user', role: Role.ADMIN }))
+  findUnique.mock.mockImplementationOnce(async () => ({ id: 'real-user', role: Role.ADMIN, bannedAt: null }))
   await guard.canActivate(context)
   assert.equal(request.user?.role, Role.ADMIN)
   await guard.canActivate(context)

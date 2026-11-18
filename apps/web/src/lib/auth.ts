@@ -168,6 +168,15 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       },
     },
     callbacks: {
+      async signIn({ user }) {
+        if (!user.email) return false
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { bannedAt: true },
+        })
+        // A missing user is allowed here so first-time OAuth registration still works.
+        return !dbUser || dbUser.bannedAt === null
+      },
       async jwt({ token, user, account }) {
         if (user?.email && account) {
           const dbUser = await prisma.user.upsert({
@@ -181,8 +190,10 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               name: user.name ?? undefined,
               image: user.image ?? undefined,
             },
-            select: { id: true, role: true },
+            select: { id: true, role: true, bannedAt: true },
           })
+          // Recheck after signIn as a ban may have been applied in between callbacks.
+          if (dbUser.bannedAt !== null) throw new Error('A felhasználó hozzáférése tiltva van.')
           await prisma.userProfile.upsert({
             where: { userId: dbUser.id },
             create: { userId: dbUser.id },
@@ -198,12 +209,14 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         const dbUser = userId
           ? await prisma.user.findUnique({
               where: { id: userId },
-              select: { role: true },
+              select: { role: true, bannedAt: true },
             })
           : null
 
-        session.user.id = userId
-        session.user.role = dbUser?.role ?? 'GUEST'
+        const isBanned = !!dbUser && dbUser.bannedAt !== null
+        session.user.id = dbUser && !isBanned ? userId : ''
+        session.user.role = dbUser && !isBanned ? dbUser.role : 'GUEST'
+        session.user.isBanned = isBanned
         return session
       },
     },

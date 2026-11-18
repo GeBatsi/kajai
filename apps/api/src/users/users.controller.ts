@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common'
 import { UsersService } from './users.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
-import { NextAuthGuard } from '../auth/guards/nextauth.guard'
+import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { type AuthUser } from '../auth/auth.service'
 
@@ -13,49 +13,47 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @Roles('ADMIN')
   findAll() {
     return this.usersService.findAll();
   }
 
   @Get(':id')
+  @Roles('ADMIN')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
+  @Roles('ADMIN')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.updateAdmin(id, updateUserDto);
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
 
-    @Post()
-  @UseGuards(NextAuthGuard)
-  create(@Body() dto: CreateUserDto, @CurrentUser() caller: AuthUser) {
-    if (caller.role !== 'ADMIN') {
-      throw new ForbiddenException('Csak admin hozhat létre felhasználót')
-    }
-    return this.usersService.create(dto)
+  @Post()
+  @Roles('ADMIN')
+  create(@Body() dto: CreateUserDto) {
+    return this.usersService.createAdmin(dto)
   }
 
   @Get('me/profile')
-  @UseGuards(NextAuthGuard)
   getMyProfile(@CurrentUser() user: AuthUser) {
     return this.usersService.getProfile(user.id)
   }
 
   @Post('me/profile/preview')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(NextAuthGuard)
   previewMyProfile(@Body() dto: UpdateProfileDto, @CurrentUser() user: AuthUser) {
     return this.usersService.previewProfile(user.id, dto)
   }
 
   @Patch('me/profile')
-  @UseGuards(NextAuthGuard)
   updateMyProfile(@Body() dto: UpdateProfileDto, @CurrentUser() user: AuthUser) {
     return this.usersService.updateProfile(user.id, dto)
   }

@@ -15,9 +15,7 @@ import { CreateProductAvailabilityDto } from './dto/create-product-availability.
 import { UpdateProductAvailabilityDto } from './dto/update-product-availability.dto'
 import type { ProductAvailabilityResponse } from './product-availability-response.mapper'
 import { HttpCode, HttpStatus } from '@nestjs/common'
-import { NextAuthGuard } from '../auth/guards/nextauth.guard'
-import { RolesGuard } from '../auth/guards/role.guard'
-import { UseGuards } from '@nestjs/common'
+import { Public } from '../auth/decorators/public.decorator'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequestUser } from '../auth/types/request-user.type';
@@ -37,7 +35,6 @@ export class ProductAvailabilityController {
   constructor(private readonly productAvailabilityService: ProductAvailabilityService) {}
 
   @Post()
-  @UseGuards(NextAuthGuard, RolesGuard)
   @Roles('ADMIN')
   create(
     @Body() dto: CreateProductAvailabilityDto,
@@ -47,6 +44,7 @@ export class ProductAvailabilityController {
   }
 
   @Get()
+  @Public()
   findAll(
     @Query('foodItemId') foodItemId?: string,
     @Query('storeId') storeId?: string,
@@ -57,12 +55,12 @@ export class ProductAvailabilityController {
   }
 
   @Get(':id')
+  @Public()
   findOne(@Param('id') id: string): Promise<ProductAvailabilityWithDetailsResponse> {
     return this.productAvailabilityService.findOne(id)
   }
 
   @Patch(':id')
-  @UseGuards(NextAuthGuard, RolesGuard)
   @Roles('ADMIN')
   update(
     @Param('id') id: string,
@@ -73,7 +71,6 @@ export class ProductAvailabilityController {
   }
 
   @Delete(':id')
-  @UseGuards(NextAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<void> {

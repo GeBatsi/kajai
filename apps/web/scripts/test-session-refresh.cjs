@@ -31,9 +31,10 @@ function loadSource(relativePath, overrides = {}) {
 const secret = 'unit-test-session-secret-not-for-production'
 process.env.NEXTAUTH_URL = 'http://localhost:4000'
 let dbRole = 'USER'
+let bannedAt = null
 const { getAuthOptions, SESSION_MAX_AGE_SECONDS } = loadSource('lib/auth.ts', {
   './prisma': {
-    prisma: { user: { findUnique: async () => (dbRole === null ? null : { role: dbRole }) } },
+    prisma: { user: { findUnique: async () => (dbRole === null ? null : { role: dbRole, bannedAt }) } },
   },
 })
 
@@ -117,4 +118,62 @@ test('no session cookie means no session and no new cookie', async () => {
   const { body, sessionCookie } = await refresh(undefined)
   assert.deepEqual(body, {})
   assert.equal(sessionCookie, undefined)
+})
+
+test('ban is reflected on the next refresh of the same session cookie', async () => {
+  const cookie = await nearlyExpired()
+  assert.equal((await refresh(cookie)).body.user.role, 'USER')
+  bannedAt = new Date()
+  try {
+    const { body } = await refresh(cookie)
+    assert.equal(body.user.role, 'GUEST')
+    assert.equal(body.user.id, '')
+    assert.equal(body.user.isBanned, true)
+  } finally {
+    bannedAt = null
+  }
+  assert.equal((await refresh(cookie)).body.user.role, 'USER')
+})
+
+test('deleted users have no registered identity or role in the frontend session', async () => {
+  dbRole = null
+  try {
+    const { body } = await refresh(await nearlyExpired())
+    assert.equal(body.user.role, 'GUEST')
+    assert.equal(body.user.id, '')
+    assert.equal(body.user.isBanned, false)
+  } finally {
+    dbRole = 'USER'
+  }
+})
+
+test('signIn and initial jwt callbacks deny banned credentials, verification, Google and Apple users', async () => {
+  let user = { id: 'test-user', role: 'USER', bannedAt: new Date() }
+  let profileWrites = 0
+  const { getAuthOptions: getOptions } = loadSource('lib/auth.ts', {
+    './prisma': {
+      prisma: {
+        user: { findUnique: async () => user, upsert: async () => user },
+        userProfile: { upsert: async () => { profileWrites++ } },
+      },
+    },
+  })
+  const { callbacks } = await getOptions()
+  for (const provider of ['credentials', 'email-verification', 'google', 'apple']) {
+    const args = { user: { email: 'test@example.com' }, account: { provider }, token: {} }
+    assert.equal(await callbacks.signIn(args), false, provider)
+    await assert.rejects(callbacks.jwt(args), /tiltva/, provider)
+  }
+  assert.equal(profileWrites, 0)
+
+  user = { ...user, bannedAt: null }
+  assert.equal(await callbacks.signIn({ user: { email: 'test@example.com' } }), true)
+  const token = await callbacks.jwt({ user: { email: 'test@example.com' }, account: { provider: 'google' }, token: {} })
+  assert.equal(token.userId, 'test-user')
+  assert.equal(token.role, 'USER')
+  assert.equal(profileWrites, 1)
+
+  user = null
+  assert.equal(await callbacks.signIn({ user: { email: 'new-oauth@example.com' } }), true, 'new OAuth users may register')
+  assert.equal(await callbacks.signIn({ user: {} }), false)
 })

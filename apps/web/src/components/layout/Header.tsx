@@ -47,7 +47,7 @@ export default function Header({
       {isLoading && <div className="h-9 w-24 shrink-0 animate-pulse rounded-lg bg-gray-200" />}
       {!isLoading && isLoggedIn && (
         <span className="hidden min-w-0 truncate text-sm text-gray-700 sm:block">
-          Ödvözlöm, <span className="font-semibold">{firstName}!</span>
+          Üdvözlöm, <span className="font-semibold">{firstName}!</span>
         </span>
       )}
       <div className="flex shrink-0 gap-2">

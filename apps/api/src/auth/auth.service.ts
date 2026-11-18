@@ -1,5 +1,5 @@
 import { BadGatewayException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
+import { UsersService, type InternalUserUpdate } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 // import {JwtService} from '@nestjs/jwt' ;
 import {MailService} from '../mail/mail.service';
@@ -9,7 +9,6 @@ import { MailTokenService } from '../mail-token/mail-token.service';
 import { NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import {TokenService} from '../token/token.service'
-import { UpdateUserDto } from '../users/dto/update-user.dto';
 
 export interface AuthUser {
   id: string
@@ -70,6 +69,10 @@ async login(email:string, password:string){
     throw new UnauthorizedException('Hibás email vagy jelszó');
   }
 
+  if (user.bannedAt !== null) {
+    throw new UnauthorizedException('A felhasználó hozzáférése tiltva van.');
+  }
+
   // Google OAuth-os felhasználó
   if(user.password === null){
     throw new UnauthorizedException('jelentkezzen be a google-lal');
@@ -105,7 +108,6 @@ return {
 
   async verifyEmail(token: string) {
   const mailToken = await this.mailTokenService.findByToken(token)
-    console.log("mailtokem:",mailToken)
   if (!mailToken) {
     throw new UnauthorizedException(
       'Érvénytelen email megerősítő token.',
@@ -113,7 +115,6 @@ return {
   }
 
   const result = await this.usersService.verifyEmail(token)
-  console.log("eredmény::: ",result)
   if(!result) {
     throw new UnauthorizedException('sikertelen email validáció.')
   }
@@ -143,7 +144,6 @@ async resetPassword(email:string, password:string, token:string){
     if (!mailToken) throw new Error() 
 
     const user = await this.usersService.findByEmail(email)
-    console.log(user,email)
     if (!user || user.password === null) {
       throw new Error()
     }
@@ -151,11 +151,10 @@ async resetPassword(email:string, password:string, token:string){
     if (user.id !== mailToken.userId) throw new Error()
 
     if (Date.now()-mailToken.createdAt.getTime() <= 3600*1000) {
-      const data:UpdateUserDto={password:passwordHash}
+      const data:InternalUserUpdate={password:passwordHash}
       await this.usersService.update(user.id,data)
     }
     else success=false
-    console.log("siker: ",success)
 
     await this.mailTokenService.delete(mailToken.id)
     if(!success) throw new Error()

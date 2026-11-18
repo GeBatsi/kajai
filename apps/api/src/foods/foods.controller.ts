@@ -10,17 +10,15 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common'
-import { FoodItemType } from '@kajai/db'
+import { FoodItemType, Role } from '@kajai/db'
 import type { FoodItem, Prisma } from '@kajai/db'
 import { FoodsService } from './foods.service'
 import { CreateFoodDto } from './dto/create-food.dto'
 import { UpdateFoodDto } from './dto/update-food.dto'
 import { FoodHistoryQueryDto, RestoreFoodDto } from './dto/food-history.dto'
 import { HttpCode, HttpStatus } from '@nestjs/common'
-import { NextAuthGuard } from '../auth/guards/nextauth.guard'
-import { RolesGuard } from '../auth/guards/role.guard'
-import { UseGuards } from '@nestjs/common'
-import { Roles } from '../auth/decorators/roles.decorator'
+import { Public } from '../auth/decorators/public.decorator'
+import { MinRole } from '../auth/decorators/min-role.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequestUser } from '../auth/types/request-user.type'
 import type { ProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
@@ -75,8 +73,7 @@ export class FoodsController {
   constructor(private readonly foodsService: FoodsService) {}
 
   @Post()
-  @UseGuards(NextAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'MODERATOR')
+  @MinRole(Role.MODERATOR)
   @UseInterceptors(FileInterceptor('image', foodImageUploadOptions))
   create(
     @Body() dto: CreateFoodDto,
@@ -87,6 +84,7 @@ export class FoodsController {
   }
 
   @Get()
+  @Public()
   findAll(
     @Query('search') search?: string,
     @Query('type') type?: FoodItemType,
@@ -95,13 +93,13 @@ export class FoodsController {
   }
 
   @Get(':id')
+  @Public()
   findOne(@Param('id') id: string): Promise<FoodItemWithDetailsResponse> {
     return this.foodsService.findOne(id)
   }
 
   @Patch(':id')
-  @UseGuards(NextAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'MODERATOR')
+  @MinRole(Role.MODERATOR)
   @UseInterceptors(FileInterceptor('image', foodImageUploadOptions))
   update(
     @Param('id') id: string,
@@ -116,31 +114,27 @@ export class FoodsController {
   }
 
   @Delete(':id')
-  @UseGuards(NextAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'MODERATOR')
+  @MinRole(Role.MODERATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<FoodItem> {
     return this.foodsService.remove(id, user.id)
   }
 
   @Get(':id/history')
-  @UseGuards(NextAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'MODERATOR')
+  @MinRole(Role.MODERATOR)
   history(@Param('id') id: string, @Query() query: FoodHistoryQueryDto) {
     return this.foodsService.history(id, query)
   }
 
   @Post(':id/restore')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(NextAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'MODERATOR')
+  @MinRole(Role.MODERATOR)
   restore(@Param('id') id: string, @Body() dto: RestoreFoodDto, @CurrentUser() user: RequestUser) {
     return this.foodsService.restore(id, dto, user.id)
   }
 
   @Patch(':id/image')
-  @UseGuards(NextAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'MODERATOR')
+  @MinRole(Role.MODERATOR)
   @UseInterceptors(FileInterceptor('image', foodImageUploadOptions))
   updateImage(
     @Param('id') id: string,
@@ -151,8 +145,7 @@ export class FoodsController {
   }
 
   @Delete(':id/image')
-  @UseGuards(NextAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'MODERATOR')
+  @MinRole(Role.MODERATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteImage(@Param('id') id: string, @CurrentUser() user: RequestUser): Promise<FoodItem> {
     return this.foodsService.deleteImage(id, user.id)

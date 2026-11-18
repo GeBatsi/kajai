@@ -7,6 +7,22 @@ import { MailTokenService } from '../mail-token/mail-token.service'
 import { Prisma } from '@kajai/db'
 import { TokenService } from '../token/token.service'
 import { calculateNutritionTargets, type ProfileInput } from './nutrition.util'
+import * as bcrypt from 'bcrypt'
+
+// Only findByEmail (internal authentication) may retrieve the password hash.
+const USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  image: true,
+  role: true,
+  isVerified: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.UserSelect
+
+export type InternalUserUpdate = UpdateUserDto &
+  Pick<Prisma.UserUpdateInput, 'password' | 'isVerified'>
 
 @Injectable()
 export class UsersService {
@@ -16,6 +32,20 @@ export class UsersService {
     private mailTokenService: MailTokenService,
     private tokenService: TokenService
   ) {}
+
+  async createAdmin(dto: CreateUserDto) {
+    const password = dto.password == null ? undefined : await bcrypt.hash(dto.password, 12)
+    return this.create({ ...dto, password })
+  }
+
+  updateAdmin(id: string, dto: UpdateUserDto) {
+    // Explicit mapping also prevents mass assignment without the HTTP validation pipe.
+    return this.prisma.user.update({
+      where: { id },
+      data: { name: dto.name, image: dto.image },
+      select: USER_SELECT,
+    })
+  }
 
  async create(dto: CreateUserDto) {
     try {
@@ -28,14 +58,7 @@ export class UsersService {
           profile: { create: {} },
           password:dto.password ?? null
         },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          image: true,
-          role: true,
-          createdAt: true,
-        },
+        select: USER_SELECT,
       })
       return user
     } catch (e) {
@@ -47,28 +70,31 @@ export class UsersService {
   }
 
   findAll() {
-     return this.prisma.user.findMany();
+     return this.prisma.user.findMany({ select: USER_SELECT });
   }
 
   findOne(id: string) {
     return this.prisma.user.findUnique({
+      select: USER_SELECT,
       where: {
         id,
       },
     });
   }
 
-  update(id: string, updateUserDto: UpdateUserDto) {
+  update(id: string, updateUserDto: InternalUserUpdate) {
     return this.prisma.user.update({
       where: {
         id,
       },
       data: updateUserDto,
+      select: USER_SELECT,
     });
   }
 
   remove(id: string) {
    return this.prisma.user.delete({
+      select: USER_SELECT,
       where: {
         id,
       },
@@ -87,7 +113,7 @@ export class UsersService {
 
   const uToken=await this.mailTokenService.findByToken(mailToken);
   if(!uToken) throw new NotFoundException("Nincs ilyem validálható felhasználó");
-  const data:UpdateUserDto={
+  const data:InternalUserUpdate={
     isVerified:true
   };
   const user=await this.update(uToken.userId,data);

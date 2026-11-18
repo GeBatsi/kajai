@@ -14,7 +14,7 @@
     "test:cov": "jest --coverage",
     "test:f&a": "pnpm run test:foods && pnpm run test:auth",
     "test:foods": "node scripts/test-specs.cjs src/foods/dto/food-name.spec.ts src/foods/dto/food-json.spec.ts src/foods/food-history.spec.ts src/foods/foods.service.spec.ts src/storage/storage.service.spec.ts src/foods/foods.integration.spec.ts",
-    "test:auth": "node scripts/test-specs.cjs src/auth/guards/nextauth.guard.spec.ts src/auth/session-auth.integration.spec.ts"
+    "test:auth": "node scripts/test-specs.cjs src/auth/guards/nextauth.guard.spec.ts src/auth/session-auth.integration.spec.ts src/auth/rbac.integration.spec.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",
@@ -71,6 +71,7 @@
       "auth/auth.service.spec.ts",
       "auth/guards/nextauth.guard.spec.ts",
       "auth/session-auth.integration.spec.ts",
+      "auth/rbac.integration.spec.ts",
       "foods/dto/food-json.spec.ts",
       "foods/dto/food-name.spec.ts",
       "foods/food-history.spec.ts",
