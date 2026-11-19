@@ -56,8 +56,10 @@ pnpm dev
 
 Docker-rel a teljes stack (Postgres, Redis, Meilisearch, API, web) egy paranccsal indul.
 A konténerek a gyökér `.env` fájlból kapják a titkos értékeket, ezért előtte legyen meg
-(`cp .env.local .env`). Az API a tárhely-beállítások (`S3_*`, ld. `.env.example`) nélkül
-nem indul el; a valódi értékek a csapat kulcstárában vannak.
+(`cp .env.local .env`). A `docker-compose.yml` minden kulcsot név szerint felsorol, és
+`.env` nélkül helykitöltő értékekkel indítja a stacket (így megy a CI is). Ilyenkor a
+képfeltöltés (`S3_*`), a levélküldés (`MAIL_*`) és a Google-belépés nem működik; a valódi
+értékek a csapat kulcstárában vannak.
 
 ```bash
 docker compose up -d --build   # web: http://localhost:4000, api: http://localhost:4001/api
@@ -107,8 +109,8 @@ kajai/
 ## Tesztek
 
 A projekt gyökerében futtatott `pnpm test` elindítja az API `test:foods` és
-`test:auth`, valamint a frontend `test:food-access`, `test:food-fields` és
-`test:food-history` tesztjeit. A külön tesztparancsok továbbra is használhatók
+`test:auth`, valamint a frontend `test:food-access`, `test:food-fields`,
+`test:food-history` és `test:session-refresh` tesztjeit. A külön tesztparancsok továbbra is használhatók
 például a `pnpm --filter @kajai/api test:foods` paranccsal.
 
 A PostgreSQL-integrációs tesztekhez add meg a `FOOD_TEST_DATABASE_URL` környezeti
