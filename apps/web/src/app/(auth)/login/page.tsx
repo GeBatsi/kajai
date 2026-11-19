@@ -1,10 +1,37 @@
 'use client'
 
 import { signIn, useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import LoginModal from '@/components/auth/LoginModal';
 import Header from '@/components/layout/Header'
 import RegisterModal from '@/components/auth/RegisterModal';
+
+// NextAuth redirects failed sign-ins here with ?error=<code>.
+const signInErrors: Record<string, string> = {
+  OAuthSignin: 'A külső fiókos bejelentkezést nem sikerült elindítani. Kérjük, próbáld újra.',
+  OAuthCallback:
+    'A külső fiókos bejelentkezés nem sikerült. Próbáld újra, vagy válassz másik bejelentkezési módot.',
+  Callback:
+    'A külső fiókos bejelentkezés nem sikerült. Próbáld újra, vagy válassz másik bejelentkezési módot.',
+  AccessDenied: 'A bejelentkezés nem engedélyezett ezzel a fiókkal.',
+  Configuration: 'A bejelentkezés jelenleg nem elérhető. Kérjük, próbáld később.',
+}
+
+function signInErrorMessage(code: string | null): string | null {
+  if (!code) return null
+  return signInErrors[code] ?? 'Sikertelen bejelentkezés. Kérjük, próbáld újra.'
+}
+
+function SignInError() {
+  const message = signInErrorMessage(useSearchParams().get('error'))
+  if (!message) return null
+  return (
+    <p role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+      {message}
+    </p>
+  )
+}
 
 export default function LoginPage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -17,6 +44,9 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-md sm:p-8">
         <h1 className="mb-2 text-center text-2xl font-bold text-gray-900">Bejelentkezés</h1>
         <p className="mb-8 text-center text-sm text-gray-500">Folytasd a meglévő fiókoddal</p>
+        <Suspense fallback={null}>
+          <SignInError />
+        </Suspense>
         <div className="flex flex-col gap-3">
           <button
               type="button"
