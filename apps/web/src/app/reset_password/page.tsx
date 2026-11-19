@@ -9,8 +9,8 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50 px-4">
-          <div role="status" className="text-sm text-gray-500">
+        <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-background px-4">
+          <div role="status" className="text-sm text-muted-foreground">
             Betöltés...
           </div>
         </main>
@@ -137,16 +137,16 @@ function ResetPasswordPageContent() {
         }}
       />
 
-      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-md">
+      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-md">
 
           {/* Fejléc */}
           <div className="mb-8 text-center">
-            <h1 className="mb-2 text-2xl font-bold text-gray-900">
+            <h1 className="mb-2 text-2xl font-bold text-foreground">
               Új jelszó beállítása
             </h1>
 
-            <p className="text-sm leading-6 text-gray-500">
+            <p className="text-sm leading-6 text-muted-foreground">
               Addja meg a regisztrációhoz használt email címet,
               majd adjon meg új jelszót.
             </p>
@@ -156,7 +156,7 @@ function ResetPasswordPageContent() {
           {error && (
             <div
               role="alert"
-              className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700"
+              className="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-5 text-destructive"
             >
               {error}
             </div>
@@ -166,7 +166,7 @@ function ResetPasswordPageContent() {
           {success && (
             <div
               role="status"
-              className="mb-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm leading-5 text-green-700"
+              className="mb-5 rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm leading-5 text-success"
             >
               {success}
             </div>
@@ -181,7 +181,7 @@ function ResetPasswordPageContent() {
               <div>
                 <label
                   htmlFor="reset-password-email"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   Email cím
                 </label>
@@ -196,7 +196,7 @@ function ResetPasswordPageContent() {
                   autoFocus
                   required
                   disabled={isLoading}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted"
                 />
               </div>
 
@@ -204,7 +204,7 @@ function ResetPasswordPageContent() {
               <div>
                 <label
                   htmlFor="reset-password"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   Új jelszó
                 </label>
@@ -219,10 +219,10 @@ function ResetPasswordPageContent() {
                   required
                   minLength={8}
                   disabled={isLoading}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted"
                 />
 
-                <p className="mt-1.5 text-xs text-gray-400">
+                <p className="mt-1.5 text-xs text-muted-foreground">
                   A jeszó legalább 8 karakter hosszú kell hogy legyen.
                 </p>
               </div>
@@ -231,7 +231,7 @@ function ResetPasswordPageContent() {
               <div>
                 <label
                   htmlFor="reset-password-again"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   Új jelszó ismét
                 </label>
@@ -248,7 +248,7 @@ function ResetPasswordPageContent() {
                   required
                   minLength={8}
                   disabled={isLoading}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted"
                 />
               </div>
 
@@ -256,7 +256,7 @@ function ResetPasswordPageContent() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading
                   ? 'Jelszó módosítása...'
@@ -269,7 +269,7 @@ function ResetPasswordPageContent() {
           {success && (
             <Link
               href="/login"
-              className="mt-5 block w-full rounded-lg bg-gray-900 px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-gray-800"
+              className="mt-5 block w-full rounded-lg bg-primary px-4 py-3 text-center text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
             >
               Bejelentkezés
             </Link>
@@ -280,7 +280,7 @@ function ResetPasswordPageContent() {
             <div className="mt-6 text-center">
               <Link
                 href="/login"
-                className="text-sm font-medium text-gray-600 transition hover:text-gray-900"
+                className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
               >
                 ← Vissza a bejelentkezéshez
               </Link>

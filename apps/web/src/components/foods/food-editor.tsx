@@ -50,18 +50,18 @@ export default function FoodEditor({ apiBaseUrl, foodId }: { apiBaseUrl: string;
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10">
+    <main className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-2xl">
         <Link
           href="/moderator/foods/edit"
-          className="mb-6 inline-block text-sm text-slate-500 hover:text-slate-700"
+          className="mb-6 inline-block text-sm text-muted-foreground hover:text-foreground"
         >
           ← Vissza az alapanyagokhoz
         </Link>
-        <div className="rounded-3xl bg-white p-8 shadow-sm">
-          <h1 className="mb-6 text-3xl font-bold text-slate-900">Alapanyag szerkesztés</h1>
+        <div className="rounded-3xl bg-card p-8 shadow-sm">
+          <h1 className="mb-6 text-3xl font-bold text-foreground">Alapanyag szerkesztés</h1>
           {error ? (
-            <div role="alert" className="text-sm text-red-700">
+            <div role="alert" className="text-sm text-destructive">
               <p>{error}</p>
               <Link
                 href={`/moderator/foods/${encodeURIComponent(foodId)}/history`}
@@ -78,7 +78,7 @@ export default function FoodEditor({ apiBaseUrl, foodId }: { apiBaseUrl: string;
               </button>
             </div>
           ) : (
-            <p role="status" className="text-sm text-slate-500">
+            <p role="status" className="text-sm text-muted-foreground">
               Alapanyag betöltése...
             </p>
           )}

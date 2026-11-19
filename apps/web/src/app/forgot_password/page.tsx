@@ -59,15 +59,15 @@ return (
         onLoginClick={() => { window.location.href = '/login'}}
         onRegisterClick={() => { window.location.href = '/login'}}
       />
-<main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-<div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-md">
+<main className="flex min-h-screen items-center justify-center bg-background px-4">
+<div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-md">
 {/* Fejléc */}
 <div className="mb-8 text-center">
-<h1 className="mb-2 text-2xl font-bold text-gray-900">
+<h1 className="mb-2 text-2xl font-bold text-foreground">
 Elfelejtett jelszó
 </h1>
 
-      <p className="text-sm leading-6 text-gray-500">
+      <p className="text-sm leading-6 text-muted-foreground">
         Addja meg a regisztrációhoz használt email címedet,
         és elküldjük a jelszava megváltoztatásához szükséges
         további teendőket. Ha Google bejentkezést használ, akkor a jelszót ott kell módosítani, 
@@ -79,7 +79,7 @@ Elfelejtett jelszó
     {error && (
       <div
         role="alert"
-        className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700"
+        className="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-5 text-destructive"
       >
         {error}
       </div>
@@ -89,7 +89,7 @@ Elfelejtett jelszó
     {success && (
       <div
         role="status"
-        className="mb-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm leading-5 text-green-700"
+        className="mb-5 rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm leading-5 text-success"
       >
         {success}
       </div>
@@ -102,7 +102,7 @@ Elfelejtett jelszó
       <div>
         <label
           htmlFor="forgot-password-email"
-          className="mb-1.5 block text-sm font-medium text-gray-700"
+          className="mb-1.5 block text-sm font-medium text-foreground"
         >
           Email cím
         </label>
@@ -117,7 +117,7 @@ Elfelejtett jelszó
           autoFocus
           required
           disabled={isLoading || !!success}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:bg-gray-100"
+          className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted"
         />
       </div>
 
@@ -125,7 +125,7 @@ Elfelejtett jelszó
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? 'Email küldése...' : 'Jelszó-visszaállító email küldése'}
         </button>
@@ -135,7 +135,7 @@ Elfelejtett jelszó
     {/* Vissza a loginhoz */}
     <div className="mt-6 text-center">
       <Link href="/login"
-        className="text-sm font-medium text-gray-600 transition hover:text-gray-900"
+        className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
       >
         ← Vissza a bejelentkezéshez
       </Link>
