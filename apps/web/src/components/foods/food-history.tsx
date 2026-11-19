@@ -25,7 +25,7 @@ function Changes({
 }) {
   const changes = historyChanges(before, after, includeImage)
   if (!changes.length)
-    return <p className="text-sm text-slate-600">Nincs eltérés a megjelenített adatokban.</p>
+    return <p className="text-sm text-muted-foreground">Nincs eltérés a megjelenített adatokban.</p>
   return (
     <div className="overflow-x-auto">
       <table className="w-full table-fixed text-left text-sm">
@@ -45,7 +45,7 @@ function Changes({
         </thead>
         <tbody>
           {changes.map((row) => (
-            <tr key={row.key} className="border-t border-slate-200">
+            <tr key={row.key} className="border-t border-border">
               <th scope="row" className="break-words p-2 font-medium">
                 {row.label}
               </th>
@@ -197,34 +197,34 @@ export default function FoodHistory({
 
   const target = selected ? selected.entry[selected.side] : null
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10">
+    <main className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-4xl space-y-6">
         <Link
           href={`/moderator/foods/${encodeURIComponent(foodId)}/edit`}
-          className="text-sm text-slate-600 underline"
+          className="text-sm text-muted-foreground underline"
         >
           Vissza a szerkesztéshez
         </Link>
-        <section className="space-y-5 rounded-3xl bg-white p-6 shadow-sm sm:p-8">
+        <section className="space-y-5 rounded-3xl bg-card p-6 shadow-sm sm:p-8">
           <h1 className="text-3xl font-bold">Alapanyag előzményei</h1>
           {data?.current?.values.name && <p className="font-medium">{data.current.values.name}</p>}
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             A név, kategória, tápértékek és allergének korábbi állapota állítható vissza. A kép
             változatlan marad.
           </p>
           {data && !data.current && (
-            <p role="status" className="text-amber-800">
+            <p role="status" className="text-amber-900 dark:text-secondary">
               Az alapanyag törölve lett. Az előzmények megtekinthetők, de a törölt alapanyag
               visszaállítása nem elérhető.
             </p>
           )}
           {error && (
-            <p role="alert" className="text-red-700">
+            <p role="alert" className="text-destructive">
               {error}
             </p>
           )}
           {success && (
-            <p role="status" className="text-green-700">
+            <p role="status" className="text-success">
               {success}
             </p>
           )}
@@ -246,7 +246,7 @@ export default function FoodHistory({
               tabIndex={-1}
               role="region"
               aria-label="Visszaállítás előnézete"
-              className="space-y-4 rounded-xl border border-amber-300 bg-amber-50 p-4"
+              className="space-y-4 rounded-xl border border-secondary/50 bg-secondary/10 p-4"
             >
               <h2 className="text-xl font-semibold">Visszaállítás előnézete</h2>
               <p>
@@ -268,7 +268,7 @@ export default function FoodHistory({
                     !historyChanges(data.current.values, target.values, false).length
                   }
                   onClick={() => void restore()}
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
+                  className="rounded-xl bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
                 >
                   {restoring ? 'Visszaállítás…' : 'Visszaállítás megerősítése'}
                 </button>
@@ -286,12 +286,12 @@ export default function FoodHistory({
           {data && !data.entries.length && <p>Még nincs naplózott előzmény.</p>}
           <ol className="space-y-4">
             {data?.entries.map((entry) => (
-              <li key={entry.id} className="rounded-xl border border-slate-200 p-4">
+              <li key={entry.id} className="rounded-xl border border-border p-4">
                 <p className="font-semibold">
                   {actionLabels[entry.action] ?? entry.action} —{' '}
                   <time dateTime={entry.createdAt}>{dateText(entry.createdAt)}</time>
                 </p>
-                <p className="mb-3 text-sm text-slate-600">{entry.actor?.name ?? 'Rendszer'}</p>
+                <p className="mb-3 text-sm text-muted-foreground">{entry.actor?.name ?? 'Rendszer'}</p>
                 {entry.restoreSource && (
                   <p className="mb-3 text-sm">
                     Visszaállítás forrása:{' '}
@@ -332,7 +332,7 @@ export default function FoodHistory({
                             : 'Művelet utáni adatok visszaállítása'}
                         </button>
                         {state.reason && (
-                          <p className="mt-1 max-w-md text-sm text-amber-800">{state.reason}</p>
+                          <p className="mt-1 max-w-md text-sm text-amber-900 dark:text-secondary">{state.reason}</p>
                         )}
                       </div>
                     )

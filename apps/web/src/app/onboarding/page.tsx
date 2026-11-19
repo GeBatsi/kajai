@@ -11,8 +11,8 @@ import type { ActivityLevel, GoalType } from '@kajai/types'
 const STEP_TITLES = ['Alapadatok', 'Aktivitás szint', 'Cél', 'Összegzés']
 
 const inputClass =
-  'w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
-const errorInputClass = 'border-red-400 focus:border-red-500'
+  'w-full min-w-0 rounded-lg border border-input bg-background px-4 py-2 text-sm focus:border-ring focus:outline-none'
+const errorInputClass = 'border-destructive focus:border-destructive'
 
 const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -51,17 +51,17 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-sm sm:p-8">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md rounded-2xl bg-card p-5 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-2">
           {STEP_TITLES.map((title, i) => (
-            <div key={title} className={`h-1.5 flex-1 rounded-full ${i <= step ? 'bg-gray-900' : 'bg-gray-200'}`} />
+            <div key={title} className={`h-1.5 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-muted'}`} />
           ))}
         </div>
-        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">
+        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {step + 1}. lépés / {STEP_TITLES.length}
         </p>
-        <h1 className="mb-6 text-xl font-bold text-gray-900">{STEP_TITLES[step]}</h1>
+        <h1 className="mb-6 text-xl font-bold text-foreground">{STEP_TITLES[step]}</h1>
 
         {step === 0 && (
           <div className="flex flex-col gap-4">
@@ -73,15 +73,15 @@ export default function OnboardingPage() {
                   onClick={() => setGender(opt.value)}
                   className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                     gender === opt.value
-                      ? 'border-gray-900 bg-gray-900 text-white'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-input text-foreground hover:bg-muted'
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <label className="flex flex-col gap-1 text-sm text-gray-600">
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
               Születési dátum
               <input
                 type="date"
@@ -91,10 +91,10 @@ export default function OnboardingPage() {
                 className={`${inputClass} appearance-none ${isFutureDate ? errorInputClass : ''}`}
               />
               {isFutureDate && (
-                <span className="text-xs text-red-600">A születési dátum nem lehet jövőbeli.</span>
+                <span className="text-xs text-destructive">A születési dátum nem lehet jövőbeli.</span>
               )}
             </label>
-            <label className="flex flex-col gap-1 text-sm text-gray-600">
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
               Magasság (cm)
               <input
                 type="number"
@@ -104,7 +104,7 @@ export default function OnboardingPage() {
                 className={inputClass}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm text-gray-600">
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
               Testtömeg (kg)
               <input
                 type="number"
@@ -126,12 +126,12 @@ export default function OnboardingPage() {
                 onClick={() => setActivityLevel(opt.value)}
                 className={`rounded-lg border px-4 py-3 text-left transition ${
                   activityLevel === opt.value
-                    ? 'border-gray-900 bg-gray-900 text-white'
-                    : 'border-gray-300 hover:bg-gray-50'
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-input hover:bg-muted'
                 }`}
               >
                 <p className="text-sm font-medium">{opt.label}</p>
-                <p className={`text-xs ${activityLevel === opt.value ? 'text-gray-300' : 'text-gray-500'}`}>
+                <p className={`text-xs ${activityLevel === opt.value ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                   {opt.hint}
                 </p>
               </button>
@@ -148,12 +148,12 @@ export default function OnboardingPage() {
                 onClick={() => setGoalType(opt.value)}
                 className={`rounded-lg border px-4 py-3 text-left transition ${
                   goalType === opt.value
-                    ? 'border-gray-900 bg-gray-900 text-white'
-                    : 'border-gray-300 hover:bg-gray-50'
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-input hover:bg-muted'
                 }`}
               >
                 <p className="text-sm font-medium">{opt.label}</p>
-                <p className={`text-xs ${goalType === opt.value ? 'text-gray-300' : 'text-gray-500'}`}>{opt.hint}</p>
+                <p className={`text-xs ${goalType === opt.value ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{opt.hint}</p>
               </button>
             ))}
           </div>
@@ -161,9 +161,9 @@ export default function OnboardingPage() {
 
         {step === 3 && (
           <div className="flex flex-col gap-4">
-            {mutation.isPending && <p className="text-sm text-gray-500">Számítás folyamatban...</p>}
+            {mutation.isPending && <p className="text-sm text-muted-foreground">Számítás folyamatban...</p>}
             {mutation.isError && (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-destructive">
                 {getApiErrorMessage(mutation.error, 'Hiba történt a profil mentése közben. Próbáld újra.')}
               </p>
             )}
@@ -192,7 +192,7 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={() => setStep(step - 1)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
             >
               Vissza
             </button>
@@ -205,7 +205,7 @@ export default function OnboardingPage() {
               type="button"
               disabled={step === 0 && !step1Valid}
               onClick={goNext}
-              className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               Tovább
             </button>
@@ -215,7 +215,7 @@ export default function OnboardingPage() {
               type="button"
               disabled={!mutation.isSuccess}
               onClick={() => router.push('/')}
-              className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               Kezdés
             </button>
@@ -228,9 +228,9 @@ export default function OnboardingPage() {
 
 function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-gray-50 p-3">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-lg font-bold text-gray-900">{value}</p>
+    <div className="rounded-lg bg-background p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-lg font-bold text-foreground">{value}</p>
     </div>
   )
 }
