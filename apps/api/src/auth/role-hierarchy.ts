@@ -2,6 +2,8 @@ import { Role } from '@kajai/db'
 
 export type RegisteredRole = Exclude<Role, 'GUEST'>
 
+export const REGISTERED_ROLES = [Role.USER, Role.MODERATOR, Role.ADMIN] as const satisfies readonly RegisteredRole[]
+
 const ROLE_RANK = {
   [Role.GUEST]: 0,
   [Role.USER]: 1,

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { AuditService } from '../audit/audit.service';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailTokenService } from '../mail-token/mail-token.service';
@@ -11,6 +12,7 @@ describe('UsersService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
+        { provide: AuditService, useValue: {} },
         { provide: PrismaService, useValue: {} },
         { provide: MailTokenService, useValue: {} },
         { provide: TokenService, useValue: {} },

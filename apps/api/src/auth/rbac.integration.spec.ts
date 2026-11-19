@@ -18,6 +18,7 @@ import { MailTokenService } from '../mail-token/mail-token.service'
 import { TokenService } from '../token/token.service'
 import { UsersService } from '../users/users.service'
 import { hasMinRole } from './role-hierarchy'
+import { usersTestStore } from '../users/users-test-store.spec'
 
 const { encode } = createRequire(resolve(__dirname, '../../../web/package.json'))('next-auth/jwt') as {
   encode: (params: { token: Record<string, unknown>; secret: string }) => Promise<string>
@@ -60,54 +61,14 @@ test('production AuthModule globally protects Users CRUD and preserves auth/prof
   const origin = 'http://localhost:4000'
   const password = 'StrongPassword123'
   const passwordHash = await bcrypt.hash(password, 4)
-  const users = new Map<string, User>()
   const makeUser = (id: string, email: string): User => ({
     id, email, password: passwordHash, role: Role.USER, name: 'Test user', image: null,
     isVerified: true, bannedAt: null, banReason: null, createdAt: new Date(), updatedAt: new Date(),
   })
   const caller = makeUser('caller', 'caller@example.com')
-  users.set(caller.id, caller)
-  users.set('target', makeUser('target', 'target@example.com'))
-  let authReads = 0
-  let mutations = 0
+  const { prisma, users, audits, state } = usersTestStore([caller, makeUser('target', 'target@example.com')])
   let mailSent = 0
   const tokens = new Map<string, { id: string; userId: string; createdAt: Date; type: string }>()
-  const project = (user: User | undefined, select?: Record<string, boolean>) =>
-    user ? select ? Object.fromEntries(Object.keys(select).filter((key) => select[key]).map((key) => [key, user[key as keyof User]])) : { ...user } : null
-  const prisma = {
-    user: {
-      findUnique: async ({ where, select }: { where: { id?: string; email?: string }; select?: Record<string, boolean> }) => {
-        if (select?.bannedAt) authReads++
-        return project(where.id ? users.get(where.id) : [...users.values()].find((u) => u.email === where.email), select)
-      },
-      findMany: async ({ select }: { select: Record<string, boolean> }) => [...users.values()].map((u) => project(u, select)),
-      create: async ({ data, select }: { data: Partial<User> & { email: string }; select: Record<string, boolean> }) => {
-        mutations++
-        const user = { ...makeUser(`created-${mutations}`, data.email), ...Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)), isVerified: false }
-        users.set(user.id, user)
-        return project(user, select)
-      },
-      update: async ({ where, data, select }: { where: { id: string }; data: Partial<User>; select: Record<string, boolean> }) => {
-        mutations++
-        const user = users.get(where.id)!
-        Object.assign(user, Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)))
-        return project(user, select)
-      },
-      delete: async ({ where, select }: { where: { id: string }; select: Record<string, boolean> }) => {
-        mutations++
-        const result = project(users.get(where.id), select)
-        users.delete(where.id)
-        return result
-      },
-    },
-    userProfile: {
-      findUnique: async ({ where }: { where: { userId: string } }) => ({
-        userId: where.userId, gender: null, dateOfBirth: null, heightCm: null, weightKg: null,
-        bodyFatPct: null, activityLevel: 'SEDENTARY', goalType: 'MAINTENANCE',
-      }),
-      update: async ({ where, data }: { where: { userId: string }; data: object }) => ({ ...where, ...data }),
-    },
-  }
   const module = await Test.createTestingModule({
     imports: [
       ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, load: [() => ({ NEXTAUTH_SECRET: secret, NEXTAUTH_URL: origin })] }),
@@ -142,7 +103,7 @@ test('production AuthModule globally protects Users CRUD and preserves auth/prof
   })
   const noSecrets = (body: unknown) => {
     if (body && typeof body === 'object') {
-      assert.ok(!Object.hasOwn(body, 'password') && !Object.hasOwn(body, 'banReason'))
+      for (const key of ['password', 'profile', 'mailTokens', 'mealLogs', 'weightLogs', 'activityLogs']) assert.ok(!Object.hasOwn(body, key))
       Object.values(body).forEach(noSecrets)
     }
     assert.ok(!JSON.stringify(body).includes(passwordHash))
@@ -158,14 +119,14 @@ test('production AuthModule globally protects Users CRUD and preserves auth/prof
     for (const role of [null, Role.GUEST, Role.USER, Role.MODERATOR, Role.ADMIN]) {
       await t.test(`${route.method} ${route.path}: ${role ?? 'no session'}`, async () => {
         caller.role = role ?? Role.ADMIN
-        const beforeReads = authReads
-        const beforeMutations = mutations
+        const beforeReads = state.authReads
+        const beforeMutations = state.mutations
         const response = await request(route.path, route.method, route.body, role ? cookie : null)
         const body = await response.json()
         assert.equal(response.status, !role ? 401 : role === Role.ADMIN ? route.status : 403, JSON.stringify(body))
-        assert.equal(authReads - beforeReads, role ? 1 : 0, 'exactly one authentication lookup per request')
+        assert.equal(state.authReads - beforeReads, role ? 1 : 0, 'exactly one guard lookup; transaction revalidation is separate')
         if (role === Role.ADMIN) noSecrets(body)
-        else assert.equal(mutations, beforeMutations)
+        else assert.equal(state.mutations, beforeMutations)
       })
     }
   }
@@ -182,11 +143,11 @@ test('production AuthModule globally protects Users CRUD and preserves auth/prof
 
   for (const field of ['password', 'role', 'isVerified', 'email', 'bannedAt', 'banReason']) {
     await t.test(`admin PATCH rejects ${field}`, async () => {
-      const before = mutations
+      const before = state.mutations
       const response = await request('/users/caller', 'PATCH', { [field]: field === 'isVerified' ? true : 'ADMIN' })
       assert.equal(response.status, 400)
       await response.text()
-      assert.equal(mutations, before)
+      assert.equal(state.mutations, before)
     })
   }
 
@@ -287,5 +248,197 @@ test('production AuthModule globally protects Users CRUD and preserves auth/prof
     assert.equal(response.status, 401)
     await response.text()
     assert.equal(mailSent, 2)
+  })
+
+  for (const route of [
+    { path: '/users/managed/role', method: 'PATCH', body: { role: 'MODERATOR' } },
+    { path: '/users/managed/ban', method: 'POST', body: { reason: '  Rule violation  ' } },
+    { path: '/users/managed/unban', method: 'POST', body: {} },
+  ]) {
+    users.set('managed', makeUser('managed', 'managed@example.com'))
+    for (const role of [null, Role.GUEST, Role.USER, Role.MODERATOR, Role.ADMIN]) {
+      await t.test(`${route.method} ${route.path}: ${role ?? 'no session'}`, async () => {
+        caller.role = role ?? Role.ADMIN
+        const response = await request(route.path, route.method, route.body, role ? cookie : null)
+        assert.equal(response.status, !role ? 401 : role === Role.ADMIN ? 200 : 403, await response.text())
+      })
+    }
+  }
+
+  await t.test('management endpoints reject own-account changes, missing targets and invalid/extra fields', async () => {
+    caller.role = Role.ADMIN
+    for (const [suffix, method, body] of [
+      ['/role', 'PATCH', { role: 'USER' }], ['/ban', 'POST', { reason: 'Reason' }], ['', 'DELETE', undefined],
+    ] as const) {
+      let response = await request(`/users/caller${suffix}`, method, body)
+      assert.equal(response.status, 403, await response.text())
+      response = await request(`/users/missing${suffix}`, method, body)
+      assert.equal(response.status, 404, await response.text())
+    }
+    let response = await request('/users/missing/unban', 'POST', {})
+    assert.equal(response.status, 404, await response.text())
+    for (const body of [{ role: 'GUEST' }, { role: 'UNKNOWN' }, {}, { role: 'USER', password: 'injected' }]) {
+      response = await request('/users/managed/role', 'PATCH', body)
+      assert.equal(response.status, 400, await response.text())
+    }
+    for (const body of [{}, { reason: '' }, { reason: '   ' }, { reason: null }, { reason: 123 }, { reason: 'x'.repeat(501) }, { reason: 'OK', role: 'ADMIN' }]) {
+      response = await request('/users/managed/ban', 'POST', body)
+      assert.equal(response.status, 400, await response.text())
+    }
+    response = await request('/users/managed/unban', 'POST', { role: 'ADMIN' })
+    assert.equal(response.status, 400, await response.text())
+    for (const role of ['GUEST', 'UNKNOWN', null]) {
+      response = await request('/users', 'POST', { email: 'guest@example.com', role })
+      assert.equal(response.status, 400, await response.text())
+    }
+  })
+
+  await t.test('ban, repeat, guard/login rejection, unban and login success with the same cookie', async () => {
+    const managed = makeUser('managed', 'managed@example.com')
+    users.set(managed.id, managed)
+    const managedCookie = `kajai-session=${await encode({ token: { userId: managed.id, role: 'ADMIN' }, secret })}`
+    const before = audits.length
+    let response = await request('/users/managed/ban', 'POST', { reason: '  Original reason  ' })
+    assert.equal(response.status, 200)
+    const first = await response.json() as { bannedAt: string; banReason: string }
+    assert.equal(first.banReason, 'Original reason')
+    noSecrets(first)
+    response = await request('/users/managed/ban', 'POST', { reason: 'Replacement' })
+    assert.equal(response.status, 200)
+    const repeated = await response.json() as { bannedAt: string; banReason: string }
+    assert.equal(repeated.bannedAt, first.bannedAt)
+    assert.equal(repeated.banReason, first.banReason)
+    response = await request('/users/me/profile', 'GET', undefined, managedCookie)
+    assert.equal(response.status, 403, await response.text())
+    response = await request('/auth/login', 'POST', { email: managed.email, password }, null)
+    assert.equal(response.status, 401, await response.text())
+    response = await request('/users/managed/unban', 'POST', {})
+    assert.equal(response.status, 200)
+    const restored = await response.json() as { bannedAt: null; banReason: null; role: string }
+    assert.equal(restored.bannedAt, null)
+    assert.equal(restored.banReason, null)
+    assert.equal(restored.role, 'USER')
+    response = await request('/users/managed/unban', 'POST', {})
+    assert.equal(response.status, 200, await response.text())
+    assert.equal(audits.length - before, 2)
+    response = await request('/auth/login', 'POST', { email: managed.email, password }, null)
+    assert.equal(response.status, 201, await response.text())
+    response = await request('/users/me/profile', 'GET', undefined, managedCookie)
+    assert.equal(response.status, 200, await response.text())
+  })
+
+  await t.test('role updates are audited once and audited create may grant ADMIN/MODERATOR', async () => {
+    const before = audits.length
+    for (let repeat = 0; repeat < 2; repeat++) {
+      const response = await request('/users/managed/role', 'PATCH', { role: 'MODERATOR' })
+      assert.equal(response.status, 200, await response.text())
+    }
+    assert.equal(audits.length - before, 1)
+    assert.deepEqual(audits.at(-1)?.oldValue, { role: 'USER' })
+    assert.deepEqual(audits.at(-1)?.newValue, { role: 'MODERATOR' })
+    assert.equal(audits.at(-1)?.userId, caller.id)
+    assert.equal(audits.at(-1)?.recordId, 'managed')
+    for (const role of ['ADMIN', 'MODERATOR']) {
+      const response = await request('/users', 'POST', { email: `new-${role}@example.com`, role })
+      assert.equal(response.status, 201, await response.text())
+      assert.deepEqual(audits.at(-1)?.newValue, { role })
+      assert.equal(audits.at(-1)?.action, 'CREATE')
+    }
+  })
+
+  await t.test('HTTP audit failure rolls back role, ban, unban, delete and creation', async () => {
+    state.failAudit = true
+    const before = structuredClone(users.get('managed'))
+    const auditCount = audits.length
+    for (const [path, method, body] of [
+      ['/users/managed/role', 'PATCH', { role: 'ADMIN' }],
+      ['/users/managed/ban', 'POST', { reason: 'Must roll back' }],
+      ['/users/managed', 'DELETE', undefined],
+      ['/users', 'POST', { email: 'rollback@example.com', role: 'ADMIN' }],
+    ] as const) {
+      const response = await request(path, method, body)
+      assert.equal(response.status, 500, await response.text())
+      assert.deepEqual(users.get('managed'), before)
+      assert.equal(audits.length, auditCount)
+    }
+    const managed = users.get('managed')!
+    managed.bannedAt = new Date()
+    managed.banReason = 'Keep this reason'
+    const response = await request('/users/managed/unban', 'POST', {})
+    assert.equal(response.status, 500, await response.text())
+    assert.equal(managed.banReason, 'Keep this reason')
+    assert.ok(managed.bannedAt)
+    assert.ok(![...users.values()].some((user) => user.email === 'rollback@example.com'))
+    state.failAudit = false
+    managed.bannedAt = null
+    managed.banReason = null
+  })
+
+  await t.test('external recipe references prevent HTTP deletion', async () => {
+    state.externalReference = true
+    const response = await request('/users/managed', 'DELETE')
+    assert.equal(response.status, 409, await response.text())
+    assert.ok(users.has('managed'))
+    state.externalReference = false
+  })
+
+  await t.test('last active admin defensive checks return 409 over HTTP', async () => {
+    users.get('managed')!.role = Role.ADMIN
+    state.activeAdminCountOverride = 1
+    for (const [suffix, method, body] of [
+      ['/role', 'PATCH', { role: 'USER' }], ['/ban', 'POST', { reason: 'Denied' }], ['', 'DELETE', undefined],
+    ] as const) {
+      const response = await request(`/users/managed${suffix}`, method, body)
+      assert.equal(response.status, 409, await response.text())
+    }
+    state.activeAdminCountOverride = undefined
+    users.get('managed')!.role = Role.USER
+  })
+
+  await t.test('list validates queries and preserves legacy versus explicit paginated contracts', async () => {
+    users.get('managed')!.name = 'Unique Search Name'
+    users.get('managed')!.email = 'unique@sample.hu'
+    let response = await request('/users')
+    const legacy = await response.json()
+    assert.ok(Array.isArray(legacy))
+    assert.ok(legacy.every((user) => !('bannedAt' in user) && !('banReason' in user)))
+    for (const query of ['search=unique%20search', 'search=SAMPLE.HU', 'page=1&limit=1', 'status=active', 'role=USER', 'search=']) {
+      response = await request(`/users?${query}`)
+      assert.equal(response.status, 200)
+      const body = await response.json() as { data: Record<string, unknown>[]; meta: { page: number; limit: number; total: number } }
+      assert.ok(Array.isArray(body.data))
+      assert.equal(body.meta.page, 1)
+      assert.ok(body.data.every((row) => 'bannedAt' in row && 'banReason' in row))
+      noSecrets(body)
+      if (query.startsWith('search=') && query !== 'search=') assert.equal(body.data[0].id, 'managed')
+    }
+    for (const query of ['page=0', 'page=-1', 'page=1.5', 'page=1e2', 'page=', 'page=1000001', 'limit=0', 'limit=101', 'limit=abc', 'role=GUEST', 'role=UNKNOWN', 'status=all', 'search=a&search=b', 'page=1&page=2', 'unknown=1']) {
+      response = await request(`/users?${query}`)
+      assert.equal(response.status, 400, `${query}: ${await response.text()}`)
+    }
+    for (const role of [Role.USER, Role.MODERATOR]) {
+      caller.role = role
+      response = await request('/users?page=1')
+      assert.equal(response.status, 403, await response.text())
+    }
+    caller.role = Role.ADMIN
+  })
+
+  await t.test('concurrent requests from two admins cannot disable both accounts', async () => {
+    const first = makeUser('concurrent-first', 'concurrent-first@example.com')
+    const second = makeUser('concurrent-second', 'concurrent-second@example.com')
+    first.role = second.role = Role.ADMIN
+    users.set(first.id, first)
+    users.set(second.id, second)
+    const firstCookie = `kajai-session=${await encode({ token: { userId: first.id }, secret })}`
+    const secondCookie = `kajai-session=${await encode({ token: { userId: second.id }, secret })}`
+    const responses = await Promise.all([
+      request(`/users/${second.id}/ban`, 'POST', { reason: 'Concurrent test' }, firstCookie),
+      request(`/users/${first.id}/role`, 'PATCH', { role: 'USER' }, secondCookie),
+    ])
+    const statuses = responses.map((response) => response.status).sort()
+    assert.deepEqual(statuses, [200, 403])
+    await Promise.all(responses.map((response) => response.text()))
+    assert.equal([first, second].filter((user) => user.role === Role.ADMIN && user.bannedAt === null).length, 1)
   })
 })

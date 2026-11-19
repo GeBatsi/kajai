@@ -9,11 +9,12 @@
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "type-check": "tsc --noEmit",
-    "test": "jest && pnpm run test:foods && pnpm run test:auth",
+    "test": "jest && pnpm run test:foods && pnpm run test:auth && pnpm run test:users",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:f&a": "pnpm run test:foods && pnpm run test:auth",
+    "test:f&a": "pnpm run test:foods && pnpm run test:auth && pnpm run test:users",
     "test:foods": "node scripts/test-specs.cjs src/foods/dto/food-name.spec.ts src/foods/dto/food-json.spec.ts src/foods/food-history.spec.ts src/foods/foods.service.spec.ts src/storage/storage.service.spec.ts src/foods/foods.integration.spec.ts",
+    "test:users": "node scripts/test-specs.cjs src/users/users-management.spec.ts src/users/users-postgres.integration.spec.ts",
     "test:auth": "node scripts/test-specs.cjs src/auth/guards/nextauth.guard.spec.ts src/auth/session-auth.integration.spec.ts src/auth/rbac.integration.spec.ts"
   },
   "dependencies": {
@@ -88,6 +89,9 @@
       "stores/stores.controller.spec.ts",
       "stores/stores.service.spec.ts",
       "token/token.service.spec.ts",
+      "users/users-management.spec.ts",
+      "users/users-postgres.integration.spec.ts",
+      "users/users-test-store.spec.ts",
       "users/users.controller.spec.ts",
       "users/users.service.spec.ts"
     ],

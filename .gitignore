@@ -48,5 +48,5 @@ storybook-static/
 tsconfig.tsbuildinfo
 *.tsbuildinfo
 
-#docs
-docs/*
+#docs/local
+docs/local/*

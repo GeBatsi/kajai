@@ -6,7 +6,10 @@ import {
   MinLength,
   Matches,
   IsEnum,
+  IsIn,
+  ValidateIf,
 } from 'class-validator';
+import { REGISTERED_ROLES } from '../../auth/role-hierarchy';
 
 
 export class CreateUserDto {
@@ -41,8 +44,9 @@ export class CreateUserDto {
    @IsOptional()
    isVerified?:boolean
 
-  @IsOptional()
+  @ValidateIf((_object, value: unknown) => value !== undefined)
   @IsEnum(Role)
+  @IsIn(REGISTERED_ROLES)
   role?: Role
 
 }
