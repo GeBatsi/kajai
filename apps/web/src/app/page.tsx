@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { getMyProfile } from '@/lib/api'
 import { canManageFoods } from '@/lib/food-permissions'
+import { canAccessAdmin } from '@/lib/admin-permissions'
 import { CalorieProgressBar } from '@/components/profile/calorie-progress-bar'
 import { MacroDonutChart } from '@/components/profile/macro-donut-chart'
 import Header from '@/components/layout/Header'
@@ -33,7 +34,7 @@ export default function HomePage() {
   }, [status, router])
 
   // Onboarding ellenőrzése
-  const needsOnboarding = !!profile && !profile.dailyKcal
+  const needsOnboarding = !!profile && !profile.dailyKcal && !canAccessAdmin(session?.user)
 
   useEffect(() => {
     if (status === 'authenticated' && needsOnboarding) {

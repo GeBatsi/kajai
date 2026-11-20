@@ -72,6 +72,7 @@ const HomePage = loadSource('app/page.tsx', {
   '@/components/profile/calorie-progress-bar': { CalorieProgressBar: () => null },
   '@/components/profile/macro-donut-chart': { MacroDonutChart: () => null },
   '@/lib/food-permissions': permissions,
+  '@/lib/admin-permissions': loadSource('lib/admin-permissions.ts'),
 }).default
 
 let token = { userId: 'test-user', role: 'ADMIN' }
