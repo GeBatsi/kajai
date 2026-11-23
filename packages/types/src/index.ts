@@ -9,6 +9,7 @@ export type ActivityLevel =
   | 'VERY_ACTIVE'
   | 'EXTRA_ACTIVE'
 export type FoodItemType = 'BASIC' | 'PRODUCT'
+export type NutritionCorrectionStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type MealType = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK'
 export type FavoriteType = 'RECIPE' | 'FOOD' | 'PRODUCT'
 
@@ -87,6 +88,40 @@ export interface FoodItem {
   isVerified: boolean
   nutrition?: Nutrition
   allergens?: Allergen
+}
+
+// Serialized HTTP contracts for the nutrition-correction frontend (timestamps are ISO strings).
+export interface FoodNutritionCorrectionResponse {
+  id: string
+  foodItemId: string | null
+  submittedById: string | null
+  reviewedById: string | null
+  originalNutrition: Record<string, unknown> | null
+  proposedNutrition: Partial<Nutrition>
+  foodUpdatedAt: string
+  foodAuditVersion: number
+  reason: string
+  status: NutritionCorrectionStatus
+  submittedAt: string
+  reviewedAt: string | null
+  rejectionReason: string | null
+  createdAt: string
+  updatedAt: string
+  foodItem: { id: string; name: string } | null
+  submittedBy: { id: string; name: string | null } | null
+  reviewedBy: { id: string; name: string | null } | null
+}
+
+export interface FoodNutritionCorrectionDetailResponse extends FoodNutritionCorrectionResponse {
+  currentFood: { id: string; name: string; nutrition: Record<string, unknown> | null; updatedAt: string } | null
+  isStale: boolean
+  canApprove: boolean
+  approvalBlockedReason: string | null
+}
+
+export interface FoodNutritionCorrectionsPage {
+  data: FoodNutritionCorrectionResponse[]
+  meta: { page: number; limit: number; total: number; totalPages: number }
 }
 
 // ─── Recipe ───────────────────────────────────────────────────────────────────

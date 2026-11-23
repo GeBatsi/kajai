@@ -13,6 +13,7 @@ import { MailModule } from './mail/mail.module';
 // import { TokenService } from './token/token.service';
 import { TokenModule } from './token/token.module';
 import { HealthController } from './health/health.controller'
+import { NutritionCorrectionsModule } from './nutrition-corrections/nutrition-corrections.module'
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { HealthController } from './health/health.controller'
     PrismaModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     FoodsModule,
+    NutritionCorrectionsModule,
     IngredientsModule,
     ProductAvailabilityModule,
     StoresModule,

@@ -23,7 +23,10 @@ function setup() {
     ...food,
     ...data,
   }))
-  const tx = { foodItem: { create: save, update: save } }
+  const tx = {
+    foodItem: { create: save, update: save, findUnique: async () => prisma.foodItem.findUnique() },
+    $queryRaw: async (query: Prisma.Sql) => query.text.includes('FOR UPDATE') ? [{ id: food.id }] : prisma.$queryRaw(query),
+  }
   const prisma = {
     foodItem: { findUnique: mock.fn(async () => food) },
     $queryRaw: mock.fn<(query: Prisma.Sql) => Promise<{ id: string }[]>>(async () => []),
@@ -185,7 +188,7 @@ for (const method of ['create', 'update'] as const) {
       },
     )
 
-    assert.equal(prisma.$transaction.mock.callCount(), 0)
+    assert.equal(prisma.$transaction.mock.callCount(), method === 'update' ? 1 : 0)
     assert.equal(storage.uploadFoodImage.mock.callCount(), 0)
     assert.equal(storage.deleteFileByUrl.mock.callCount(), 0)
     assert.equal(save.mock.callCount(), 0)

@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common'
-import { Prisma, FoodItemType } from '@kajai/db'
+import { Prisma, FoodItemType, type FoodItem } from '@kajai/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateFoodDto } from './dto/create-food.dto'
 import { UpdateFoodDto } from './dto/update-food.dto'
@@ -13,6 +13,7 @@ import { AuditService } from '../audit/audit.service'
 import { mapProductAvailabilityResponse } from '../product-availability/product-availability-response.mapper'
 import { StorageService } from '../storage/storage.service'
 import { normalizeStoredNutrition, parseAllergens, parseNutrition } from './food-json.schema'
+import { validateNutrition } from './nutrition-validation'
 import { FoodHistoryQueryDto, RestoreFoodDto } from './dto/food-history.dto'
 import { historyValues, jsonObject, restoreValues } from './food-history'
 
@@ -29,7 +30,7 @@ export class FoodsService {
   async create(dto: CreateFoodDto, userId: string, image?: Express.Multer.File) {
     const nutrition = parseNutrition(dto.nutrition)
 
-    this.validateNutrition(nutrition)
+    validateNutrition(nutrition)
 
     const allergens = parseAllergens(dto.allergens)
 
@@ -107,9 +108,9 @@ export class FoodsService {
     }
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, client: Prisma.TransactionClient = this.prisma) {
     try {
-      const food = await this.prisma.foodItem.findUnique({
+      const food = await client.foodItem.findUnique({
         where: { id },
         include: {
           ingredient: true,
@@ -149,50 +150,51 @@ export class FoodsService {
         throw new BadRequestException('A tápértékeket objektumként kell megadni.')
       }
 
-      const oldFood = await this.findOne(id)
-      let nutrition: Record<string, unknown> | undefined
-      if (nutritionPatch !== undefined && Object.keys(nutritionPatch).length > 0) {
-        const previousNutrition = normalizeStoredNutrition(oldFood.nutrition)
-        nutrition = { ...previousNutrition, ...nutritionPatch }
-        this.validateNutrition(nutrition)
-      }
-      let allergens: Record<string, unknown> | undefined
-      if (allergensPatch !== undefined && Object.keys(allergensPatch).length > 0) {
-        allergens = { ...(jsonObject(oldFood.allergens) ?? {}), ...allergensPatch }
-      }
-
-      await this.assertUniqueBasicFood(
-        dto.name ?? oldFood.name,
-        dto.category === undefined ? oldFood.category : dto.category,
-        dto.type ?? oldFood.type,
-        id,
-      )
-
+      validateNutrition(nutritionPatch)
       return await this.prisma.$transaction(async (tx) => {
-        const updatedFood = await tx.foodItem.update({
-          where: { id },
-          data: {
-            ...dto,
-            nutrition: nutrition as Prisma.InputJsonValue | undefined,
-            allergens: allergens as Prisma.InputJsonValue | undefined,
-          },
-        })
-
-        await this.auditService.logWithTx(tx, {
-          tableName: 'food_items',
-          recordId: id,
-          action: 'UPDATE',
-          oldValue: oldFood,
-          newValue: updatedFood,
-          userId,
-        })
-
-        return updatedFood
+        await this.lockForUpdate(tx, id)
+        const oldFood = await this.findOne(id, tx)
+        let nutrition: Record<string, unknown> | undefined
+        if (nutritionPatch !== undefined && Object.keys(nutritionPatch).length > 0) {
+          nutrition = { ...normalizeStoredNutrition(oldFood.nutrition), ...nutritionPatch }
+          validateNutrition(nutrition)
+        }
+        let allergens: Record<string, unknown> | undefined
+        if (allergensPatch !== undefined && Object.keys(allergensPatch).length > 0) {
+          allergens = { ...(jsonObject(oldFood.allergens) ?? {}), ...allergensPatch }
+        }
+        await this.assertUniqueBasicFood(
+          dto.name ?? oldFood.name,
+          dto.category === undefined ? oldFood.category : dto.category,
+          dto.type ?? oldFood.type, id, tx,
+        )
+        return this.updateWithAuditTx(tx, oldFood, {
+          ...dto,
+          nutrition: nutrition as Prisma.InputJsonValue | undefined,
+          allergens: allergens as Prisma.InputJsonValue | undefined,
+        }, userId)
       })
     } catch (error) {
       this.logError(`Az élelmiszer frissítése sikertelen: ${id}`, error)
       this.rethrowFoodError(error)
     }
+  }
+
+  // Callers hold this row lock before reading, merging and writing a FoodItem.
+  async lockForUpdate(tx: Prisma.TransactionClient, id: string) {
+    const locked = await tx.$queryRaw<{ id: string }[]>(
+      Prisma.sql`SELECT "id" FROM "food_items" WHERE "id" = ${id} FOR UPDATE`,
+    )
+    if (!locked.length) throw new NotFoundException('Az élelmiszer nem található.')
+  }
+
+  async updateWithAuditTx(tx: Prisma.TransactionClient, oldFood: FoodItem, data: Prisma.FoodItemUpdateInput, userId: string) {
+    const updated = await tx.foodItem.update({ where: { id: oldFood.id }, data })
+    await this.auditService.logWithTx(tx, {
+      tableName: 'food_items', recordId: oldFood.id, action: 'UPDATE',
+      oldValue: oldFood, newValue: updated, userId,
+    })
+    return updated
   }
 
   async remove(id: string, userId: string) {
@@ -356,7 +358,7 @@ export class FoodsService {
     if (!values) return null
     try {
       const data = restoreValues(value)
-      this.validateNutrition(data.nutrition)
+      validateNutrition(data.nutrition)
       return { values: { ...values, ...data }, canRestore: true, reason: null }
     } catch (error) {
       if (!(error instanceof BadRequestException)) throw error
@@ -462,7 +464,7 @@ export class FoodsService {
             'A kiválasztott előzmény nem található ennél az alapanyagnál.',
           )
         const data = restoreValues(dto.side === 'before' ? entry.oldValue : entry.newValue)
-        this.validateNutrition(data.nutrition)
+        validateNutrition(data.nutrition)
         await this.assertUniqueBasicFood(data.name, data.category, oldFood.type, id, tx)
         const restored = await tx.foodItem.update({
           where: { id },
@@ -525,6 +527,10 @@ export class FoodsService {
   }
 
   private rethrowFoodError(error: unknown): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && (
+      ['P2034', 'P2028'].includes(error.code) ||
+      (error.code === 'P2010' && ['40P01', '40001', '55P03', '57014'].includes(String(error.meta?.code)))
+    )) throw new ConflictException('Párhuzamos vagy elhúzódó élelmiszermódosítás miatt frissítsd az adatokat.')
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       // Expression indexes can report SQL expressions instead of Prisma field names.
       const target = Array.isArray(error.meta?.target)
@@ -541,64 +547,6 @@ export class FoodsService {
     }
 
     throw error
-  }
-
-  private validateNutrition(nutrition?: Record<string, unknown> | null): void {
-    if (!nutrition) {
-      return
-    }
-
-    const amount = (field: string): number | null => {
-      const value = nutrition[field]
-      if (value == null) return null
-
-      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-        throw new BadRequestException(
-          'A tápanyagmennyiségek csak nemnegatív, véges számok lehetnek.',
-        )
-      }
-
-      if (field !== 'energyKcal' && value > 100) {
-        throw new BadRequestException('Egy tápanyag mennyisége legfeljebb 100 g lehet.')
-      }
-      return value
-    }
-
-    const energyKcal = amount('energyKcal')
-    if (energyKcal !== null && energyKcal > 900) {
-      throw new BadRequestException('Az energia mennyisége legfeljebb 900 kcal lehet.')
-    }
-    const protein = amount('protein')
-    const carbs = amount('carbs')
-    const fat = amount('fat')
-    const fiber = amount('fiber')
-    const salt = amount('salt')
-    const sugar = amount('sugar')
-    const saturatedFat = amount('saturatedFat')
-    // Unknown values do not contribute to this lower bound; stored values remain null.
-    const total = new Prisma.Decimal(protein ?? 0)
-      .plus(carbs ?? 0)
-      .plus(fat ?? 0)
-      .plus(fiber ?? 0)
-      .plus(salt ?? 0)
-
-    if (total.greaterThan(100)) {
-      throw new BadRequestException(
-        'A fehérje, szénhidrát, zsír, rost és só együttes mennyisége legfeljebb 100 g lehet.',
-      )
-    }
-
-    if (sugar !== null && carbs !== null && sugar > carbs) {
-      throw new BadRequestException(
-        'A cukor mennyisége nem haladhatja meg a szénhidrát mennyiségét.',
-      )
-    }
-
-    if (saturatedFat !== null && fat !== null && saturatedFat > fat) {
-      throw new BadRequestException(
-        'A telített zsír mennyisége nem haladhatja meg a zsír mennyiségét.',
-      )
-    }
   }
 
   private logError(message: string, error: unknown): void {

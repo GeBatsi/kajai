@@ -54,6 +54,12 @@ enum TokenType {
   PASSWORD_RESET
 }
 
+enum NutritionCorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ─── User & Profile ───────────────────────────────────────────────────────────
 
 model User {
@@ -78,6 +84,8 @@ model User {
   recipes        Recipe[]
 
   mailTokens MailToken[]
+  submittedNutritionCorrections FoodNutritionCorrection[] @relation("CorrectionSubmitter")
+  reviewedNutritionCorrections  FoodNutritionCorrection[] @relation("CorrectionReviewer")
 
   @@map("users")
 }
@@ -132,11 +140,41 @@ model FoodItem {
   mealLogs            MealLog[]
   inventoryItems      InventoryItem[]
   favorites           Favorite[]
+  nutritionCorrections FoodNutritionCorrection[]
 
   // BASIC name/category uniqueness uses a partial expression index maintained in
   // migration 20261025120000_unique_basic_food_name_category (not expressible in Prisma 5).
   @@index([name])
   @@map("food_items")
+}
+
+model FoodNutritionCorrection {
+  id                String @id @default(cuid())
+  foodItemId        String?
+  foodItem          FoodItem? @relation(fields: [foodItemId], references: [id], onDelete: SetNull)
+  submittedById     String?
+  submittedBy       User? @relation("CorrectionSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedById      String?
+  reviewedBy        User? @relation("CorrectionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  originalNutrition Json?
+  proposedNutrition Json
+  foodUpdatedAt     DateTime
+  // Audit count also detects writes sharing the same millisecond updatedAt.
+  foodAuditVersion  Int
+  reason            String @db.VarChar(1000)
+  status            NutritionCorrectionStatus @default(PENDING)
+  submittedAt       DateTime @default(now())
+  reviewedAt        DateTime?
+  rejectionReason   String? @db.VarChar(1000)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // One live PENDING proposal per food/submitter is enforced by a partial SQL index.
+  @@index([status, submittedAt, id])
+  @@index([foodItemId, submittedAt, id])
+  @@index([submittedById, submittedAt, id])
+  @@index([reviewedById])
+  @@map("food_nutrition_corrections")
 }
 
 model Ingredient {
