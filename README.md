@@ -109,8 +109,8 @@ kajai/
 ## Tesztek
 
 A projekt gyökerében futtatott `pnpm test` elindítja az API `test:foods` és
-`test:auth`, valamint a frontend `test:food-access`, `test:food-fields` és
-`test:food-history` tesztjeit. A külön tesztparancsok továbbra is használhatók
+`test:auth`, valamint a frontend `test:food-access`, `test:food-fields`,
+`test:food-history` és `test:session-refresh` tesztjeit. A külön tesztparancsok továbbra is használhatók
 például a `pnpm --filter @kajai/api test:foods` paranccsal.
 
 A PostgreSQL-integrációs tesztekhez add meg a `FOOD_TEST_DATABASE_URL` környezeti

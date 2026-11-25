@@ -18,23 +18,9 @@ export default function Header({
     const firstName =
         session?.user?.name?.trim() || 'név nélküli felhasználó'
 
-    const handleLogout = async () => {
-        try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
-            method: 'POST',
-
-        })
-
-        if (!response.ok) {
-            throw new Error('Kijelentkezés sikertelen')
-        }
-        await signOut({
-        callbackUrl: '/login',
-        })
-        } catch (error) {
-        console.error('Logout hiba:', error)
-        }
-  }
+    // The session is NextAuth's cookie on the web origin; only signOut clears it,
+    // so logout must not depend on the API being reachable.
+    const handleLogout = () => signOut({ callbackUrl: '/login' })
 
 
 
