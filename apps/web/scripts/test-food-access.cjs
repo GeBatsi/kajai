@@ -34,6 +34,7 @@ let dbRole = 'USER'
 let dbError
 let databaseReads = 0
 const { getAuthOptions } = loadSource('lib/auth.ts', {
+  './apple-signin': loadSource('lib/apple-signin.ts'),
   './prisma': {
     prisma: {
       user: {

@@ -32,6 +32,7 @@ const secret = 'unit-test-session-secret-not-for-production'
 process.env.NEXTAUTH_URL = 'http://localhost:4000'
 let dbRole = 'USER'
 const { getAuthOptions, SESSION_MAX_AGE_SECONDS } = loadSource('lib/auth.ts', {
+  './apple-signin': loadSource('lib/apple-signin.ts'),
   './prisma': {
     prisma: { user: { findUnique: async () => (dbRole === null ? null : { role: dbRole }) } },
   },
