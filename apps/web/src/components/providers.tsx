@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { CorrectionPrivacyGuard } from '@/components/nutrition-corrections/shared'
 import { ThemeProvider } from 'next-themes'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     // A `.dark` osztályt a <html>-re teszi; alapból a rendszer beállítását követi.
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <SessionProvider>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        <QueryClientProvider client={queryClient}><CorrectionPrivacyGuard />{children}</QueryClientProvider>
       </SessionProvider>
     </ThemeProvider>
   )

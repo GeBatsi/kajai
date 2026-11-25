@@ -37,7 +37,8 @@ export default function Header({
           Üdvözlöm, <span className="font-semibold">{firstName}!</span>
         </span>
       )}
-      <div className="flex shrink-0 gap-2">
+      <div className="flex flex-wrap gap-2">
+        {isLoggedIn && !!session?.user.id && !session.user.isBanned && ['USER','MODERATOR','ADMIN'].includes(session.user.role) && <nav aria-label="Javítások" className="flex flex-wrap items-center gap-3 text-sm text-primary"><Link href="/nutrition-corrections/new">Tápérték-javítás javaslata</Link><Link href="/nutrition-corrections/mine">Saját javaslataim</Link>{['MODERATOR','ADMIN'].includes(session.user.role)&&<Link href="/moderator/nutrition-corrections">Javaslatok moderálása</Link>}</nav>}
         {isLoggedIn && canAccessAdmin(session?.user) && <Link href="/admin" className="rounded-full bg-accent px-3 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring sm:px-5">Admin Dashboard</Link>}
         {!isLoggedIn && (
           <button

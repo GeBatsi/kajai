@@ -1,0 +1,2 @@
+import { ModerationDetail } from '@/components/nutrition-corrections/detail'
+export default async function Page({params}:{params:Promise<{id:string}>}){return <ModerationDetail id={(await params).id}/>}

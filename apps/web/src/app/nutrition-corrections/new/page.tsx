@@ -1,0 +1,2 @@
+import { Submission } from '@/components/nutrition-corrections/submission'
+export default async function Page({searchParams}:{searchParams:Promise<{foodId?:string}>}){const params=await searchParams;return <Submission initialFoodId={typeof params.foodId==='string'?params.foodId:''}/>}
