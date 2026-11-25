@@ -4,11 +4,12 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { mock, test } from 'node:test'
 import { ConflictException } from '@nestjs/common'
-import { FoodItemType, Prisma, PrismaClient } from '@kajai/db'
+import { FoodItemType, Prisma } from '@kajai/db'
 import { AuditService } from '../audit/audit.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { StorageService } from '../storage/storage.service'
 import { FoodsService } from './foods.service'
+import { isolatedPostgres } from '../test-support/isolated-postgres.spec'
 
 const testDatabaseUrl = process.env.FOOD_TEST_DATABASE_URL
 if (process.env.CI && process.env.CI !== 'false' && !testDatabaseUrl) {
@@ -29,36 +30,14 @@ test(
     skip: testDatabaseUrl
       ? false
       : 'A FOOD_TEST_DATABASE_URL nincs megadva; az adatbázisos teszt kimarad.',
-    timeout: 60000,
+    timeout: 120000,
   },
   async (t) => {
-    const schema = `food_uniqueness_test_${randomUUID().replaceAll('-', '')}`
-    const url = new URL(testDatabaseUrl!)
-    const admin = new PrismaClient({ datasources: { db: { url: url.toString() } } })
-    url.searchParams.set('schema', schema)
-    const db = new PrismaClient({ datasources: { db: { url: url.toString() } } })
-    await admin.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`)
-    t.after(async () => {
-      await db.$disconnect()
-      try {
-        await admin.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`)
-      } finally {
-        await admin.$disconnect()
-      }
-    })
-
+    const { db } = await isolatedPostgres(t, testDatabaseUrl!, 'kai77_food_test')
     const prismaDir = resolve(__dirname, '../../../../packages/db/prisma')
-    // The immutable initial migration has only simple, semicolon-separated DDL statements.
-    const initialSql = readFileSync(
-      resolve(prismaDir, 'migrations/20260623154715_init/migration.sql'),
-      'utf8',
-    )
-    for (const statement of initialSql
-      .split(';')
-      .map((sql) => sql.trim())
-      .filter(Boolean)) {
-      await db.$executeRawUnsafe(statement)
-    }
+    // Recreate the legacy pre-index fixture only inside our verified test schema.
+    // All other migrations, raw SQL, reconnects and service transactions use the shared isolation guard.
+    await db.$executeRawUnsafe('DROP INDEX "food_items_basic_name_category_key"')
     const migration = readFileSync(
       resolve(prismaDir, 'migrations/20261025120000_unique_basic_food_name_category/migration.sql'),
       'utf8',

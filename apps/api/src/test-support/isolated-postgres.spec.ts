@@ -130,7 +130,7 @@ COMMIT;\n`)
   }
 }
 
-export async function isolatedPostgres(t: TestContext, databaseUrl: string, prefix: 'kai77_users_test' | 'kai77_nutrition_test') {
+export async function isolatedPostgres(t: TestContext, databaseUrl: string, prefix: 'kai77_users_test' | 'kai77_nutrition_test' | 'kai77_food_test') {
   // Never fall back to DATABASE_URL, and refuse the configured development database.
   const root = resolve(__dirname, '../../../..')
   const configuredUrls = [process.env.DATABASE_URL]
@@ -143,9 +143,9 @@ export async function isolatedPostgres(t: TestContext, databaseUrl: string, pref
   }
   assert.ok(!configuredUrls.filter((url): url is string => !!url).some((url) => identity(url) === identity(databaseUrl!)),
     'The test URL must identify a separate database, not the development database.')
-  assert.ok(['kai77_users_test', 'kai77_nutrition_test'].includes(prefix), 'Unknown test schema prefix')
+  assert.ok(['kai77_users_test', 'kai77_nutrition_test', 'kai77_food_test'].includes(prefix), 'Unknown test schema prefix')
   const schema = `${prefix}_${randomUUID().replaceAll('-', '')}`
-  assert.match(schema, /^kai77_(users|nutrition)_test_[a-f0-9]{32}$/)
+  assert.match(schema, /^kai77_(users|nutrition|food)_test_[a-f0-9]{32}$/)
   const url = parseDatabaseUrl(databaseUrl!)
   assert.ok(['postgres:', 'postgresql:'].includes(url.protocol), 'Kizárólag PostgreSQL tesztadatbázis használható.')
   assert.ok(!url.searchParams.has('host'), 'A host query paraméter megkerülné a céladatbázis ellenőrzését.')
