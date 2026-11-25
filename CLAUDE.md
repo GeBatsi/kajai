@@ -114,4 +114,5 @@ Never add permissions outside this hierarchy without explicit confirmation.
 - Never bypass the NestJS Guard/Role system — always implement auth via existing decorators
 - Never hardcode API keys, secrets, or credentials — use environment variables (`.env`)
 - Never push directly to `main` — all changes go through PRs
+- `dev` is the integration branch: cut feature/fix branches from `origin/dev` and open PRs against `dev` (`gh pr create --base dev` — GitHub's default base is `main`, so set it explicitly). `main` only receives `dev → main` release PRs; staging deploys from `dev`
 - Always validate Hungarian-specific inputs (e.g. postal codes, phone numbers) with HU locale rules
