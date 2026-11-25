@@ -152,6 +152,7 @@ test('signIn and initial jwt callbacks deny banned credentials, verification, Go
   let user = { id: 'test-user', role: 'USER', bannedAt: new Date() }
   let profileWrites = 0
   const { getAuthOptions: getOptions } = loadSource('lib/auth.ts', {
+    './apple-signin': loadSource('lib/apple-signin.ts'),
     './prisma': {
       prisma: {
         user: { findUnique: async () => user, upsert: async () => user },
