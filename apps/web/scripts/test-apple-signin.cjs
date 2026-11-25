@@ -39,11 +39,11 @@ const prisma = {
       const existing = users.get(query.where.email)
       const row = existing
         ? { ...existing, ...Object.fromEntries(Object.entries(query.update).filter(([, v]) => v !== undefined)) }
-        : { id: `user-${users.size + 1}`, role: 'USER', ...query.create }
+        : { id: `user-${users.size + 1}`, role: 'USER', bannedAt: null, ...query.create }
       users.set(query.where.email, row)
-      return { id: row.id, role: row.role }
+      return { id: row.id, role: row.role, bannedAt: row.bannedAt }
     },
-    findUnique: async () => ({ role: 'USER' }),
+    findUnique: async () => ({ role: 'USER', bannedAt: null }),
   },
   userProfile: { upsert: async () => ({}) },
 }

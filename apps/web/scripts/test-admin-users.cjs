@@ -85,7 +85,9 @@ test('server layout reads the real session callback DB state and fails closed', 
   let bannedAt = null
   let signedIn = true
   let dbError = false
-  const auth = load('lib/auth.ts', { './prisma': { prisma: { user: { findUnique: async () => { if (dbError) throw new Error('DB unavailable'); return { role: dbRole, bannedAt } } } } } })
+  const auth = load('lib/auth.ts', { 
+    './apple-signin': load('lib/apple-signin.ts'),
+    './prisma': { prisma: { user: { findUnique: async () => { if (dbError) throw new Error('DB unavailable'); return { role: dbRole, bannedAt } } } } } })
   const layout = load('app/admin/layout.tsx', {
     'next-auth': { getServerSession: async (options) => signedIn ? options.callbacks.session({ session: session(), token: { userId: 'actor', role: 'ADMIN' } }) : null },
     'next/navigation': { redirect: (destination) => { throw Object.assign(new Error('Redirect'), { destination }) } },
