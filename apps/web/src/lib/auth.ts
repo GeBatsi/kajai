@@ -4,6 +4,7 @@ import AppleProvider from 'next-auth/providers/apple'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { SignJWT, importPKCS8 } from 'jose'
 import { prisma } from './prisma'
+import { appleFirstLoginName } from './apple-signin'
 
 async function getAppleClientSecret(): Promise<string> {
   const privateKey = await importPKCS8(
@@ -38,6 +39,8 @@ async function resolveAppleSecret(): Promise<string | null> {
 
 export async function getAuthOptions(): Promise<NextAuthOptions> {
   const appleSecret = process.env.APPLE_ID ? await resolveAppleSecret() : null
+  // Same rule NextAuth uses for its own cookie names and Secure flag.
+  const useSecureCookies = (process.env.NEXTAUTH_URL ?? '').startsWith('https://')
 
   return {
     providers: [
@@ -152,7 +155,18 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
 }),
 
       ...(process.env.APPLE_ID && appleSecret
-        ? [AppleProvider({ clientId: process.env.APPLE_ID, clientSecret: appleSecret })]
+        ? [
+            AppleProvider({
+              clientId: process.env.APPLE_ID,
+              clientSecret: appleSecret,
+              profile: (profile) => ({
+                id: profile.sub,
+                name: appleFirstLoginName.getStore() ?? null,
+                email: profile.email,
+                image: null,
+              }),
+            }),
+          ]
         : []),
     ],
     session: { strategy: 'jwt', maxAge: SESSION_MAX_AGE_SECONDS },
@@ -164,6 +178,18 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           sameSite: 'lax' as const,
           path: '/',
           secure: process.env.NODE_ENV === 'production',
+        },
+      },
+      // Apple returns via a cross-site form POST, which does not carry SameSite=Lax cookies,
+      // so the PKCE verifier must be SameSite=None (only allowed with Secure, i.e. on HTTPS).
+      pkceCodeVerifier: {
+        name: `${useSecureCookies ? '__Secure-' : ''}next-auth.pkce.code_verifier`,
+        options: {
+          httpOnly: true,
+          sameSite: useSecureCookies ? ('none' as const) : ('lax' as const),
+          path: '/',
+          secure: useSecureCookies,
+          maxAge: 15 * 60,
         },
       },
     },

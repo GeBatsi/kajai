@@ -293,17 +293,17 @@ export default function FoodForm({
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-10">
+    <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-2xl">
         <Link
           href={backHref}
-          className="mb-6 inline-block text-sm text-slate-500 hover:text-slate-700"
+          className="mb-6 inline-block text-sm text-muted-foreground hover:text-foreground"
         >
           ← Vissza
         </Link>
 
-        <div className="rounded-3xl bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="mb-8 text-3xl font-bold text-slate-900 sm:text-4xl">{title}</h1>
+        <div className="rounded-3xl bg-card p-6 shadow-sm sm:p-8">
+          <h1 className="mb-8 text-3xl font-bold text-foreground sm:text-4xl">{title}</h1>
 
           {initialFood && (
             <Link
@@ -325,7 +325,7 @@ export default function FoodForm({
                 )
                   event.preventDefault()
               }}
-              className="mb-6 inline-block rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium"
+              className="mb-6 inline-block rounded-xl border border-input px-4 py-2 text-sm font-medium"
             >
               Előzmények
             </Link>
@@ -335,7 +335,7 @@ export default function FoodForm({
             <fieldset disabled={isBusy} className="space-y-6">
               <legend className="sr-only">Alapanyag adatai</legend>
               <div>
-                <label htmlFor="food-name" className="mb-2 block text-sm text-slate-600">
+                <label htmlFor="food-name" className="mb-2 block text-sm text-muted-foreground">
                   Név
                 </label>
                 <input
@@ -343,7 +343,7 @@ export default function FoodForm({
                   type="text"
                   value={values.name}
                   onChange={handleTopLevelChange('name')}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500"
+                  className="w-full rounded-xl border border-input bg-background px-4 py-3 outline-none transition focus:border-ring"
                   placeholder="Pl. Csirkemell filé"
                   maxLength={200}
                   required
@@ -351,7 +351,7 @@ export default function FoodForm({
               </div>
 
               <div>
-                <label htmlFor="food-category" className="mb-2 block text-sm text-slate-600">
+                <label htmlFor="food-category" className="mb-2 block text-sm text-muted-foreground">
                   Kategória (opcionális)
                 </label>
                 <input
@@ -359,16 +359,16 @@ export default function FoodForm({
                   type="text"
                   value={values.category}
                   onChange={handleTopLevelChange('category')}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500"
+                  className="w-full rounded-xl border border-input bg-background px-4 py-3 outline-none transition focus:border-ring"
                   placeholder="Pl. hús"
                 />
               </div>
 
               <div>
-                <p className="mb-3 text-sm font-medium text-slate-700">
+                <p className="mb-3 text-sm font-medium text-foreground">
                   Tápértékek ({values.nutrition.per} {values.nutrition.unit})
                 </p>
-                <p className="mb-3 text-sm text-slate-600">
+                <p className="mb-3 text-sm text-muted-foreground">
                   Az üresen hagyott mező ismeretlen értéket jelent. Ha az érték nulla, írj 0-t.
                 </p>
 
@@ -418,7 +418,7 @@ export default function FoodForm({
               </div>
 
               <div>
-                <p className="mb-3 text-sm font-medium text-slate-700">Allergének</p>
+                <p className="mb-3 text-sm font-medium text-foreground">Allergének</p>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {allergenOptions.map(({ key, label }) => (
@@ -433,14 +433,14 @@ export default function FoodForm({
               </div>
 
               <div>
-                <label htmlFor="food-image" className="mb-2 block text-sm text-slate-600">
+                <label htmlFor="food-image" className="mb-2 block text-sm text-muted-foreground">
                   Kép
                 </label>
-                <p id="food-image-help" className="mb-3 text-sm text-slate-500">
+                <p id="food-image-help" className="mb-3 text-sm text-muted-foreground">
                   JPG, PNG vagy WebP formátum. Minimum 300×300 pixel, legfeljebb 5 MB.
                 </p>
                 {isEditing && (
-                  <p className="mb-3 text-sm text-slate-500">
+                  <p className="mb-3 text-sm text-muted-foreground">
                     A kép módosítását külön mentheted az alapanyag adataitól.
                   </p>
                 )}
@@ -451,12 +451,12 @@ export default function FoodForm({
                   accept="image/png,image/jpeg,image/webp"
                   aria-describedby="food-image-help"
                   onChange={handleImageChange}
-                  className="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm"
+                  className="block w-full rounded-xl border border-input bg-card px-4 py-3 text-sm"
                 />
 
                 {(imagePreviewUrl || currentImageUrl) && (
                   <div className="mt-4">
-                    <p className="mb-2 text-sm text-slate-600">
+                    <p className="mb-2 text-sm text-muted-foreground">
                       {imageFile ? 'Új kép előnézete' : 'Jelenlegi kép'}
                     </p>
                     <Image
@@ -465,7 +465,7 @@ export default function FoodForm({
                       width={160}
                       height={160}
                       unoptimized={Boolean(imagePreviewUrl)}
-                      className="h-40 w-40 rounded-xl border border-slate-200 object-cover"
+                      className="h-40 w-40 rounded-xl border border-border object-cover"
                     />
                   </div>
                 )}
@@ -475,7 +475,7 @@ export default function FoodForm({
                       <button
                         type="button"
                         onClick={() => void saveImage()}
-                        className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white"
+                        className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
                       >
                         {isSavingImage ? 'Kép mentése...' : 'Kép mentése'}
                       </button>
@@ -484,7 +484,7 @@ export default function FoodForm({
                       <button
                         type="button"
                         onClick={clearImageSelection}
-                        className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700"
+                        className="rounded-xl border border-input px-4 py-2 text-sm text-foreground"
                       >
                         Kiválasztás visszavonása
                       </button>
@@ -493,7 +493,7 @@ export default function FoodForm({
                       <button
                         type="button"
                         onClick={() => void saveImage(true)}
-                        className="rounded-xl border border-red-200 px-4 py-2 text-sm text-red-700"
+                        className="rounded-xl border border-destructive/30 px-4 py-2 text-sm text-destructive"
                       >
                         {isSavingImage ? 'Kép törlése...' : 'Kép törlése'}
                       </button>
@@ -501,12 +501,12 @@ export default function FoodForm({
                   </div>
                 )}
                 {imageError && (
-                  <p role="alert" className="mt-3 text-sm text-red-700">
+                  <p role="alert" className="mt-3 text-sm text-destructive">
                     {imageError}
                   </p>
                 )}
                 {imageSuccess && (
-                  <p role="status" className="mt-3 text-sm text-green-700">
+                  <p role="status" className="mt-3 text-sm text-success">
                     {imageSuccess}
                   </p>
                 )}
@@ -515,7 +515,7 @@ export default function FoodForm({
               {error && (
                 <div
                   role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                  className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
                 >
                   {error}
                 </div>
@@ -524,14 +524,14 @@ export default function FoodForm({
               {success && (
                 <div
                   role="status"
-                  className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
+                  className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
                 >
                   {success}
                 </div>
               )}
 
               {hasPendingImage && (
-                <p id="pending-image-message" role="status" className="text-sm text-amber-800">
+                <p id="pending-image-message" role="status" className="text-sm text-amber-900 dark:text-secondary">
                   Új képet választottál. Az adatok mentése előtt mentsd a képet, vagy vond vissza a
                   kiválasztást.
                 </p>
@@ -541,7 +541,7 @@ export default function FoodForm({
                 type="submit"
                 disabled={isBusy || hasPendingImage}
                 aria-describedby={hasPendingImage ? 'pending-image-message' : undefined}
-                className="w-full rounded-2xl bg-slate-950 px-5 py-4 text-base font-semibold text-white transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-70"
+                className="w-full rounded-2xl bg-primary px-5 py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSubmitting ? 'Mentés...' : isEditing ? 'Adatok mentése' : 'Mentés'}
               </button>
@@ -564,7 +564,7 @@ function Field({ label, value, max, onChange }: FieldProps) {
   const id = useId()
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm text-slate-600">
+      <label htmlFor={id} className="mb-2 block text-sm text-muted-foreground">
         {label}
       </label>
       <input
@@ -575,7 +575,7 @@ function Field({ label, value, max, onChange }: FieldProps) {
         max={max}
         value={value}
         onChange={onChange}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500"
+        className="w-full rounded-xl border border-input bg-background px-4 py-3 outline-none transition focus:border-ring"
       />
     </div>
   )
@@ -589,9 +589,9 @@ type CheckboxFieldProps = {
 
 function CheckboxField({ label, checked, onChange }: CheckboxFieldProps) {
   return (
-    <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3">
+    <label className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
       <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4" />
-      <span className="text-sm text-slate-700">{label}</span>
+      <span className="text-sm text-foreground">{label}</span>
     </label>
   )
 }

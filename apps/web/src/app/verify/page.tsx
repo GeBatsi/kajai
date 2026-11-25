@@ -50,11 +50,11 @@ function VerifyPageContent() {
 
   if (state === 'loading') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+      <main className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md rounded-2xl bg-card p-8 text-center shadow-xl">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <svg
-              className="h-8 w-8 animate-spin text-gray-700"
+              className="h-8 w-8 animate-spin text-foreground"
               viewBox="0 0 24 24"
               fill="none"
             >
@@ -76,11 +76,11 @@ function VerifyPageContent() {
             </svg>
           </div>
 
-          <h1 className="mb-3 text-2xl font-bold text-gray-900">
+          <h1 className="mb-3 text-2xl font-bold text-foreground">
             Email cím ellenőrzése
           </h1>
 
-          <p className="text-sm leading-6 text-gray-500">
+          <p className="text-sm leading-6 text-muted-foreground">
             Ellenőrizzük a megerősítő linket...
           </p>
         </div>
@@ -90,11 +90,11 @@ function VerifyPageContent() {
 
   if (state === 'error') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+      <main className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md rounded-2xl bg-card p-8 text-center shadow-xl">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/15">
             <svg
-              className="h-8 w-8 text-red-600"
+              className="h-8 w-8 text-destructive"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -108,17 +108,17 @@ function VerifyPageContent() {
             </svg>
           </div>
 
-          <h1 className="mb-3 text-2xl font-bold text-gray-900">
+          <h1 className="mb-3 text-2xl font-bold text-foreground">
             Sikertelen megerősítés
           </h1>
 
-          <p className="mb-6 text-sm leading-6 text-gray-500">
+          <p className="mb-6 text-sm leading-6 text-muted-foreground">
             A megerősítő link érvénytelen vagy hiányzik.
           </p>
 
           <Link
             href="/"
-            className="block w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+            className="block w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
           >
             Vissza a főoldalra
           </Link>
@@ -128,11 +128,11 @@ function VerifyPageContent() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md rounded-2xl bg-card p-8 text-center shadow-xl">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
           <svg
-            className="h-8 w-8 text-green-600"
+            className="h-8 w-8 text-success"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -146,11 +146,11 @@ function VerifyPageContent() {
           </svg>
         </div>
 
-        <h1 className="mb-3 text-2xl font-bold text-gray-900">
+        <h1 className="mb-3 text-2xl font-bold text-foreground">
           Email cím megerősítve
         </h1>
 
-        <p className="mb-7 text-sm leading-6 text-gray-600">
+        <p className="mb-7 text-sm leading-6 text-muted-foreground">
           Az email címed sikeresen megerősítetted.
           <br />
           Most már bejelentkezhetsz a fiókodba.
@@ -158,7 +158,7 @@ function VerifyPageContent() {
 
         <Link
           href="/"
-          className="block w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+          className="block w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
         >
           Bejelentkezés
         </Link>
@@ -171,8 +171,8 @@ export default function VerifyPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-          <div className="text-sm text-gray-500">
+        <main className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="text-sm text-muted-foreground">
             Betöltés...
           </div>
         </main>

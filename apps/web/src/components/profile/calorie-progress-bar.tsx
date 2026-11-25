@@ -20,20 +20,20 @@ export function CalorieProgressBar({ dailyKcal, consumedKcal = 0 }: CalorieProgr
   }, [targetPct])
 
   return (
-    <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-sm">
+    <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-sm">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
-        <p className="text-sm font-medium text-gray-600">Napi kalóriakeret</p>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm font-medium text-muted-foreground">Napi kalóriakeret</p>
+        <p className="text-sm text-muted-foreground">
           {consumedKcal} / {dailyKcal} kcal
         </p>
       </div>
-      <div className="h-3 w-full overflow-hidden rounded-full bg-gray-100">
+      <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-gray-900 transition-[width] duration-700 ease-out"
+          className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="mt-2 text-xs text-gray-400">{remaining} kcal maradt ma</p>
+      <p className="mt-2 text-xs text-muted-foreground">{remaining} kcal maradt ma</p>
     </div>
   )
 }

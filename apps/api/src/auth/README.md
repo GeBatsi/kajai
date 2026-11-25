@@ -16,37 +16,6 @@ adott végpont által megengedett szerepköröket. A kliens `x-user-id` és
 - Tiltott (`bannedAt !== null`) vagy `GUEST` felhasználó: **403**.
 - A korábban nyilvános lekérdezések továbbra is nyilvánosak.
 
-## Globális védelem és szerepkörök
-
-Az `AuthModule` két `APP_GUARD` providert regisztrál `useExisting` kapcsolással:
-először a `NextAuthGuard`, utána a `RolesGuard` fut. Lokális guard-deklaráció
-nem szükséges. Új végpont alapértelmezetten hitelesítést igényel.
-
-- `@Public()`: az adott végpont nem igényel sessiont. A role guardot nem kerüli meg;
-  szerepkörkorlátozással együtt használva nem válik nyilvánossá a végpont.
-- `@Roles('ADMIN')`: pontos szerepkörlista, változatlan szemantikával.
-- `@MinRole(Role.MODERATOR)`: a központi hierarchia szerint MODERATOR és ADMIN.
-- `@MinRole(Role.USER)`: USER, MODERATOR és ADMIN; GUEST nem kap felhasználói jogot.
-- A metódus saját metadata-értéke felülírja ugyanannak a dekorátornak az
-  osztályszintű értékét. Ha `@Roles` és `@MinRole` is van, mindkettő teljesüljön.
-
-A Users CRUD öt végpontja `@Roles('ADMIN')` védelmet kapott. A három sajátprofil-
-végpont minden nem tiltott, regisztrált felhasználónak elérhető. Az admin PATCH
-csak `name` és `image` mezőt fogad el; az auth belső jelszó- és verifikációs
-frissítése továbbra is külön service-metóduson működik.
-
-Nyilvános: register, login, verify, forgotpassword, resetpassword, logout;
-foods GET (history kivételével), ingredients GET, stores GET,
-product-availability GET és health. A food módosítások, history, restore és
-képműveletek minimum MODERATOR jogosultságot igényelnek. Az ingredients, stores
-és product-availability módosítások továbbra is kizárólag ADMIN-nak elérhetők.
-
-A credentials login elutasítja a tiltott felhasználót. A frontend NextAuth
-`signIn` callbackje minden belépési módnál ellenőriz, az induló `jwt` callback
-ismét ellenőriz. Session-frissítéskor a tiltott felhasználó `GUEST` szerepkört,
-üres azonosítót és `isBanned: true` jelölést kap. Az API-védelem ettől függetlenül,
-minden kérésnél az adatbázisból érvényesíti a tiltást.
-
 ## Konfiguráció
 
 - A frontend és az API **azonos `NEXTAUTH_SECRET`** értéket használjon.

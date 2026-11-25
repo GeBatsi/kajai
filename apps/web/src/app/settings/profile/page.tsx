@@ -9,9 +9,9 @@ import { MacroDonutChart } from '@/components/profile/macro-donut-chart'
 import type { ActivityLevel, GoalType } from '@kajai/types'
 
 const inputClass =
-  'w-full min-w-0 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none'
-const selectClass = inputClass + ' bg-white'
-const errorInputClass = 'border-red-400 focus:border-red-500'
+  'w-full min-w-0 rounded-lg border border-input bg-background px-4 py-2 text-sm focus:border-ring focus:outline-none'
+const selectClass = inputClass + ' bg-card'
+const errorInputClass = 'border-destructive focus:border-destructive'
 
 const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -114,22 +114,22 @@ export default function ProfileSettingsPage() {
   if (isLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-500">Betöltés...</p>
+        <p className="text-muted-foreground">Betöltés...</p>
       </main>
     )
   }
 
   return (
-    <main className="flex min-h-screen justify-center bg-gray-50 px-4 py-10">
+    <main className="flex min-h-screen justify-center bg-background px-4 py-10">
       <div className="w-full max-w-lg">
-        <Link href="/" className="mb-4 inline-block text-sm text-gray-500 hover:underline">
+        <Link href="/" className="mb-4 inline-block text-sm text-muted-foreground hover:underline">
           ← Vissza a főoldalra
         </Link>
-        <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-8">
-          <h1 className="mb-6 text-xl font-bold text-gray-900">Profil beállítások</h1>
+        <div className="rounded-2xl bg-card p-5 shadow-sm sm:p-8">
+          <h1 className="mb-6 text-xl font-bold text-foreground">Profil beállítások</h1>
 
           <div className="flex flex-col gap-4">
-            <label className="flex flex-col gap-1 text-sm text-gray-600">
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
               Nem
               <select value={gender} onChange={(e) => setGender(e.target.value)} className={selectClass}>
                 <option value="">Válassz</option>
@@ -140,7 +140,7 @@ export default function ProfileSettingsPage() {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-sm text-gray-600">
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
               Születési dátum
               <input
                 type="date"
@@ -152,10 +152,10 @@ export default function ProfileSettingsPage() {
                 }}
                 className={`${inputClass} appearance-none ${fieldErrors.dateOfBirth ? errorInputClass : ''}`}
               />
-              {fieldErrors.dateOfBirth && <span className="text-xs text-red-600">{fieldErrors.dateOfBirth}</span>}
+              {fieldErrors.dateOfBirth && <span className="text-xs text-destructive">{fieldErrors.dateOfBirth}</span>}
             </label>
             <div className="grid grid-cols-2 gap-4">
-              <label className="flex flex-col gap-1 text-sm text-gray-600">
+              <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                 Magasság (cm)
                 <input
                   type="number"
@@ -165,7 +165,7 @@ export default function ProfileSettingsPage() {
                   className={inputClass}
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm text-gray-600">
+              <label className="flex flex-col gap-1 text-sm text-muted-foreground">
                 Testtömeg (kg)
                 <input
                   type="number"
@@ -176,7 +176,7 @@ export default function ProfileSettingsPage() {
                 />
               </label>
             </div>
-            <label className="flex flex-col gap-1 text-sm text-gray-600">
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
               Testzsír % (opcionális)
               <input
                 type="number"
@@ -189,10 +189,10 @@ export default function ProfileSettingsPage() {
                 }}
                 className={`${inputClass} ${fieldErrors.bodyFatPct ? errorInputClass : ''}`}
               />
-              {fieldErrors.bodyFatPct && <span className="text-xs text-red-600">{fieldErrors.bodyFatPct}</span>}
+              {fieldErrors.bodyFatPct && <span className="text-xs text-destructive">{fieldErrors.bodyFatPct}</span>}
             </label>
 
-            <label className="flex flex-col gap-1 text-sm text-gray-600">
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
               Aktivitás szint
               <select
                 value={activityLevel}
@@ -207,7 +207,7 @@ export default function ProfileSettingsPage() {
               </select>
             </label>
 
-            <label className="flex flex-col gap-1 text-sm text-gray-600">
+            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
               Cél
               <select
                 value={goalType}
@@ -225,7 +225,7 @@ export default function ProfileSettingsPage() {
 
           {preview && (
             <div className="mt-6 flex flex-col gap-4">
-              <p className="-mb-2 text-xs text-gray-500">
+              <p className="-mb-2 text-xs text-muted-foreground">
                 {isDirty ? 'Előnézet – a változtatások még nincsenek mentve' : 'Jelenlegi kereted'}
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -235,9 +235,9 @@ export default function ProfileSettingsPage() {
               <MacroDonutChart proteinG={preview.proteinG} carbsG={preview.carbsG} fatG={preview.fatG} />
             </div>
           )}
-          {mutation.isSuccess && !isDirty && <p className="mt-4 text-sm text-green-700">Mentve.</p>}
+          {mutation.isSuccess && !isDirty && <p className="mt-4 text-sm text-success">Mentve.</p>}
           {mutation.isError && (
-            <p className="mt-4 text-sm text-red-600">
+            <p className="mt-4 text-sm text-destructive">
               {getApiErrorMessage(mutation.error, 'Hiba történt a mentés közben.')}
             </p>
           )}
@@ -246,7 +246,7 @@ export default function ProfileSettingsPage() {
             type="button"
             onClick={handleSave}
             disabled={mutation.isPending}
-            className="mt-6 w-full rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-6 w-full rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             {mutation.isPending ? 'Mentés...' : 'Mentés'}
           </button>
@@ -258,9 +258,9 @@ export default function ProfileSettingsPage() {
 
 function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-gray-50 p-3">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-base font-bold text-gray-900 sm:text-lg">{value}</p>
+    <div className="rounded-lg bg-background p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-base font-bold text-foreground sm:text-lg">{value}</p>
     </div>
   )
 }
