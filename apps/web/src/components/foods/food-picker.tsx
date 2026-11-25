@@ -43,17 +43,17 @@ export default function FoodPicker({ apiBaseUrl }: { apiBaseUrl: string }) {
   }, [apiBaseUrl, search, attempt])
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10">
+    <main className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-2xl">
-        <Link href="/" className="mb-6 inline-block text-sm text-slate-500 hover:text-slate-700">
+        <Link href="/" className="mb-6 inline-block text-sm text-muted-foreground hover:text-foreground">
           ← Vissza
         </Link>
-        <section className="rounded-3xl bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Alapanyag szerkesztés</h1>
-          <p className="mt-3 text-sm text-slate-600">
+        <section className="rounded-3xl bg-card p-6 shadow-sm sm:p-8">
+          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Alapanyag szerkesztés</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
             Keresd meg és válaszd ki a módosítandó alapanyagot.
           </p>
-          <label htmlFor="food-search" className="mb-2 mt-6 block text-sm text-slate-600">
+          <label htmlFor="food-search" className="mb-2 mt-6 block text-sm text-muted-foreground">
             Keresés név vagy kategória alapján
           </label>
           <input
@@ -65,15 +65,15 @@ export default function FoodPicker({ apiBaseUrl }: { apiBaseUrl: string }) {
               setIsLoading(true)
             }}
             placeholder="Pl. csirkemell vagy hús"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
+            className="w-full rounded-xl border border-input bg-background px-4 py-3 outline-none focus:border-ring"
           />
           <div className="mt-6" aria-live="polite" aria-busy={isLoading}>
             {isLoading ? (
-              <p className="text-sm text-slate-500">Alapanyagok betöltése...</p>
+              <p className="text-sm text-muted-foreground">Alapanyagok betöltése...</p>
             ) : error ? (
               <div
                 role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+                className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
               >
                 <p>{error}</p>
                 <button
@@ -85,22 +85,22 @@ export default function FoodPicker({ apiBaseUrl }: { apiBaseUrl: string }) {
                 </button>
               </div>
             ) : foods.length === 0 ? (
-              <p className="text-sm text-slate-500">Nincs a keresésnek megfelelő alapanyag.</p>
+              <p className="text-sm text-muted-foreground">Nincs a keresésnek megfelelő alapanyag.</p>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-border">
                 {foods.map((food) => (
                   <li key={food.id}>
                     <Link
                       href={`/moderator/foods/${encodeURIComponent(food.id)}/edit`}
-                      className="flex items-center justify-between gap-4 rounded-xl px-3 py-4 transition hover:bg-slate-50 focus-visible:outline-slate-500"
+                      className="flex items-center justify-between gap-4 rounded-xl px-3 py-4 transition hover:bg-muted focus-visible:outline-ring"
                     >
                       <div className="min-w-0">
-                        <p className="break-words font-medium text-slate-900">{food.name}</p>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="break-words font-medium text-foreground">{food.name}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
                           {food.category || 'Nincs kategória'}
                         </p>
                       </div>
-                      <span className="shrink-0 text-sm font-medium text-slate-700">
+                      <span className="shrink-0 text-sm font-medium text-foreground">
                         Szerkesztés →
                       </span>
                     </Link>
@@ -110,13 +110,13 @@ export default function FoodPicker({ apiBaseUrl }: { apiBaseUrl: string }) {
             )}
           </div>
           {!isLoading && !error && foods.length === 50 && (
-            <p className="mt-4 text-sm text-slate-500">
+            <p className="mt-4 text-sm text-muted-foreground">
               Az első 50 találat látható. Pontosítsd a keresést további alapanyagokhoz.
             </p>
           )}
           <Link
             href="/moderator/foods/new"
-            className="mt-8 inline-block text-sm font-medium text-slate-700 underline"
+            className="mt-8 inline-block text-sm font-medium text-foreground underline"
           >
             Új alapanyag létrehozása
           </Link>

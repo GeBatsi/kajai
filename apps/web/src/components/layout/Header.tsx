@@ -25,14 +25,14 @@ export default function Header({
 
 
   return (
-    <header className="flex h-16 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
-      <div className="flex shrink-0 items-center gap-2 font-bold text-gray-900">
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6">
+      <div className="flex shrink-0 items-center gap-2 font-bold text-foreground">
         <span>Kajai</span>
         <Image src="/Kajai.webp" alt="Kajai logó" width={24} height={24} className="h-6 w-6" />
       </div>
-      {isLoading && <div className="h-9 w-24 shrink-0 animate-pulse rounded-lg bg-gray-200" />}
+      {isLoading && <div className="h-9 w-24 shrink-0 animate-pulse rounded-lg bg-muted" />}
       {!isLoading && isLoggedIn && (
-        <span className="hidden min-w-0 truncate text-sm text-gray-700 sm:block">
+        <span className="hidden min-w-0 truncate text-sm text-foreground sm:block">
           Ödvözlöm, <span className="font-semibold">{firstName}!</span>
         </span>
       )}
@@ -41,7 +41,7 @@ export default function Header({
           <button
             type="button"
             onClick={onRegisterClick}
-            className="rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700 sm:px-5"
+            className="rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover sm:px-5"
           >
             Regisztráció
           </button>
@@ -50,7 +50,7 @@ export default function Header({
         <button
           type="button"
           onClick={isLoggedIn ? handleLogout : onLoginClick}
-          className="rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-gray-700 sm:px-5"
+          className="rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover sm:px-5"
         >
           {isLoggedIn ? 'kijentkezés' : 'Bejelentkezés'}
         </button>

@@ -159,7 +159,7 @@ export default function RegisterModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="register-modal-title"
-        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        className="relative w-full max-w-md rounded-2xl bg-card p-6 shadow-2xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
         {/* Bezárás */}
@@ -168,7 +168,7 @@ export default function RegisterModal({
           onClick={handleClose}
           disabled={isLoading}
           aria-label="Bezárás"
-          className="absolute right-4 top-4 rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg
             className="h-5 w-5"
@@ -189,12 +189,12 @@ export default function RegisterModal({
           <>
             <h2
               id="register-modal-title"
-              className="mb-2 pr-8 text-2xl font-bold text-gray-900"
+              className="mb-2 pr-8 text-2xl font-bold text-foreground"
             >
               Regisztráció
             </h2>
 
-            <p className="mb-6 text-sm text-gray-500">
+            <p className="mb-6 text-sm text-muted-foreground">
               Hozd létre a saját fiókodat.
             </p>
 
@@ -202,7 +202,7 @@ export default function RegisterModal({
             {error && (
               <div
                 role="alert"
-                className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                className="mb-5 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
               >
                 {error}
               </div>
@@ -216,10 +216,10 @@ export default function RegisterModal({
               <div>
                 <label
                   htmlFor="register-name"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   Név
-                  <span className="ml-1 font-normal text-gray-400">
+                  <span className="ml-1 font-normal text-muted-foreground">
                     (opcionális)
                   </span>
                 </label>
@@ -234,7 +234,7 @@ export default function RegisterModal({
                   placeholder="Péter"
                   autoComplete="name"
                   disabled={isLoading}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted"
                 />
               </div>
 
@@ -242,7 +242,7 @@ export default function RegisterModal({
               <div>
                 <label
                   htmlFor="register-email"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   Email
                 </label>
@@ -258,7 +258,7 @@ export default function RegisterModal({
                   autoComplete="email"
                   disabled={isLoading}
                   required
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted"
                 />
               </div>
 
@@ -266,7 +266,7 @@ export default function RegisterModal({
               <div>
                 <label
                   htmlFor="register-password"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   Jelszó
                 </label>
@@ -283,10 +283,10 @@ export default function RegisterModal({
                   disabled={isLoading}
                   required
                   minLength={8}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted"
                 />
 
-                <p className="mt-1.5 text-xs text-gray-400">
+                <p className="mt-1.5 text-xs text-muted-foreground">
                   Legalább 8 karakter és legalább 1 szám.
                 </p>
               </div>
@@ -295,7 +295,7 @@ export default function RegisterModal({
               <div>
                 <label
                   htmlFor="register-password-confirm"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
                 >
                   Jelszó megerősítése
                 </label>
@@ -312,7 +312,7 @@ export default function RegisterModal({
                   disabled={isLoading}
                   required
                   minLength={8}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:bg-muted"
                 />
               </div>
 
@@ -320,7 +320,7 @@ export default function RegisterModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading
                   ? 'Regisztráció...'
@@ -329,13 +329,13 @@ export default function RegisterModal({
             </form>
 
             {/* Login link */}
-            <div className="mt-5 text-center text-sm text-gray-500">
+            <div className="mt-5 text-center text-sm text-muted-foreground">
               Már van fiókod?{' '}
               <button
                 type="button"
                 onClick={handleLoginClick}
                 disabled={isLoading}
-                className="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600 disabled:opacity-50"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground disabled:opacity-50"
               >
                 Bejelentkezés
               </button>
@@ -344,9 +344,9 @@ export default function RegisterModal({
         ) : (
           /* Sikeres regisztráció */
           <div className="py-6 text-center">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
               <svg
-                className="h-7 w-7 text-green-600"
+                className="h-7 w-7 text-success"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -360,11 +360,11 @@ export default function RegisterModal({
               </svg>
             </div>
 
-            <h2 className="mb-3 text-2xl font-bold text-gray-900">
+            <h2 className="mb-3 text-2xl font-bold text-foreground">
               Sikeres regisztráció
             </h2>
 
-            <p className="mb-6 text-sm leading-6 text-gray-600">
+            <p className="mb-6 text-sm leading-6 text-muted-foreground">
               A regisztráció sikerült.
               <br />
               Küldtünk egy megerősítő emailt a megadott
@@ -378,7 +378,7 @@ export default function RegisterModal({
             <button
               type="button"
               onClick={handleClose}
-              className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+              className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
             >
               Rendben
             </button>
