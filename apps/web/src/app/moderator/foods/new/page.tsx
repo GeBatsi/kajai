@@ -6,7 +6,7 @@ export default function NewFoodPage() {
   return (
     <FoodForm
       apiBaseUrl={apiBaseUrl}
-      backHref="/"
+      backHref="/recipe-book"
       title="Alapanyag létrehozása"
     />
   )

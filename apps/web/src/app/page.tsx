@@ -9,7 +9,6 @@ import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
 
 import { getMyProfile } from '@/lib/api'
-import { canManageFoods } from '@/lib/food-permissions'
 import { canAccessAdmin } from '@/lib/admin-permissions'
 import { CalorieProgressBar } from '@/components/profile/calorie-progress-bar'
 import { MacroDonutChart } from '@/components/profile/macro-donut-chart'
@@ -108,25 +107,6 @@ export default function HomePage() {
                   fatG={profile.fatG}
                 />
               )}
-          </div>
-        )}
-
-        {/* Moderátori alapanyagkezelés */}
-        {canManageFoods(session.user.role) && (
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <Link
-              href="/moderator/foods/new"
-              className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover"
-            >
-              Alapanyag létrehozása
-            </Link>
-
-            <Link
-              href="/moderator/foods/edit"
-              className="rounded-lg border border-input px-6 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
-            >
-              Alapanyag szerkesztés
-            </Link>
           </div>
         )}
 

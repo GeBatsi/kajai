@@ -20,6 +20,8 @@ const overrides = {
   'next/image': { __esModule: true, default: () => null },
   'next/link': { __esModule: true, default: () => null },
   '@/lib/admin-permissions': { canAccessAdmin: () => false },
+  'next/navigation': { usePathname: () => '/' },
+  '@/lib/recipe-book-navigation': { canAccessRecipeBook: () => false, isRecipeBookPath: () => false },
 }
 const originalRequire = loaded.require.bind(loaded)
 loaded.require = (name) => (Object.hasOwn(overrides, name) ? overrides[name] : originalRequire(name))
@@ -37,7 +39,7 @@ loaded._compile(
 )
 const Header = loaded.exports.default
 
-// Header has no own hooks besides the mocked useSession, so it can be called directly.
+// Session and pathname are mocked; Header has no local React state, so it can be called directly.
 function logoutButton() {
   const found = []
   const walk = (node) => {

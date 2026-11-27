@@ -25,7 +25,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <Header onLoginClick={() => {}} />
       {allowed ? <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-9 lg:py-9">
         <aside><nav aria-label="Admin navigáció" className="flex flex-wrap gap-2 rounded-card border border-border bg-card p-3 lg:sticky lg:top-6 lg:flex-col">
-          <Link href="/moderator/nutrition-corrections" className="rounded-full px-4 py-3 text-primary">Javaslatok moderálása</Link>
           <Link href="/admin/users" className="rounded-full bg-accent px-4 py-3 font-semibold text-accent-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">Felhasználók</Link>
           <Link href="/" className="rounded-full px-4 py-3 text-muted-foreground hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">Vissza a KajAI-ba</Link>
         </nav><p className="mt-4 hidden px-4 text-sm text-muted-foreground lg:block">KajAI · Admin Dashboard</p></aside>

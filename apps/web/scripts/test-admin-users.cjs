@@ -112,6 +112,8 @@ test('Header admin navigation is exclusive and logout uses NextAuth', async () =
   const calls = []
   const Header = load('components/layout/Header.tsx', {
     'next-auth/react': { useSession: () => ({ data: current, status: current ? 'authenticated' : 'unauthenticated' }), signOut: async (options) => calls.push(options) },
+    'next/navigation': { usePathname: () => '/admin/users' },
+    '@/lib/recipe-book-navigation': load('lib/recipe-book-navigation.ts', { './correction-nutrition': load('lib/correction-nutrition.ts'), './food-permissions': load('lib/food-permissions.ts') }),
     'next/link': link, 'next/image': { __esModule: true, default: () => null }, '@/lib/admin-permissions': permissions,
   }).default
   for (const [role, banned] of [['ADMIN', false], ['USER', false], ['MODERATOR', false], ['ADMIN', true]]) {

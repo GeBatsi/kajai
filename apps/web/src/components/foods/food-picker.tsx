@@ -45,8 +45,8 @@ export default function FoodPicker({ apiBaseUrl }: { apiBaseUrl: string }) {
   return (
     <main className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-2xl">
-        <Link href="/" className="mb-6 inline-block text-sm text-muted-foreground hover:text-foreground">
-          ← Vissza
+        <Link href="/recipe-book" className="mb-6 inline-block rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+          ← Vissza a Receptkönyvbe
         </Link>
         <section className="rounded-3xl bg-card p-6 shadow-sm sm:p-8">
           <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Alapanyag szerkesztés</h1>

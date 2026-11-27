@@ -30,6 +30,10 @@ function loadSource(relativePath, overrides = {}) {
 }
 
 const permissions = loadSource('lib/food-permissions.ts')
+const recipeNavigation = loadSource('lib/recipe-book-navigation.ts', {
+  './food-permissions': permissions,
+  './correction-nutrition': loadSource('lib/correction-nutrition.ts'),
+})
 let dbRole = 'USER'
 let bannedAt = null
 let dbError
@@ -102,12 +106,15 @@ const FoodLayout = loadSource('app/moderator/foods/layout.tsx', {
 function assertButtons(visible) {
   const html = renderToStaticMarkup(React.createElement(HomePage))
   assert.equal(html.includes('href="/settings/profile"'), Boolean(uiSession))
-  assert.equal(html.includes('href="/moderator/foods/new"'), visible)
-  assert.equal(html.includes('href="/moderator/foods/edit"'), visible)
+  assert.equal(html.includes('href="/moderator/foods/new"'), false)
+  assert.equal(html.includes('href="/moderator/foods/edit"'), false)
+  const links = recipeNavigation.recipeBookSections(uiSession?.user).flatMap(section => section.items.map(item => item.href))
+  assert.equal(links.includes('/moderator/foods/new'), visible)
+  assert.equal(links.includes('/moderator/foods/edit'), visible)
 }
 
 for (const role of ['ADMIN', 'MODERATOR', 'USER', 'GUEST', undefined, 'UNKNOWN', 'admin']) {
-  test(`home page buttons for ${role}`, () => {
+  test(`home has no management shortcuts; recipe book permissions for ${role}`, () => {
     uiSession = { user: { id: 'test-user', name: 'Test', email: 'test@example.com', role } }
     assertButtons(role === 'ADMIN' || role === 'MODERATOR')
   })

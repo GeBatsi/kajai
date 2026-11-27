@@ -9,7 +9,7 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
-    "test": "pnpm run test:food-access && pnpm run test:food-fields && pnpm run test:food-history && pnpm run test:session-refresh && pnpm run test:header-logout && pnpm run test:apple-signin && pnpm run test:header-logout && pnpm run test:admin-users && pnpm run test:nutrition-corrections",
+    "test": "pnpm run test:food-access && pnpm run test:food-fields && pnpm run test:food-history && pnpm run test:session-refresh && pnpm run test:header-logout && pnpm run test:apple-signin && pnpm run test:admin-users && pnpm run test:nutrition-corrections && pnpm run test:recipe-book",
     "test:header-logout": "node scripts/test-header-logout.cjs",
     "test:admin-users": "node scripts/test-admin-users.cjs",
     "test:food-access": "node scripts/test-food-access.cjs",
@@ -17,7 +17,8 @@
     "test:food-history": "node scripts/test-food-history.cjs",
     "test:session-refresh": "node scripts/test-session-refresh.cjs",
     "test:nutrition-corrections": "node scripts/test-nutrition-corrections.cjs",
-    "test:apple-signin": "node scripts/test-apple-signin.cjs"
+    "test:apple-signin": "node scripts/test-apple-signin.cjs",
+    "test:recipe-book": "node scripts/test-recipe-book.cjs"
   },
   "dependencies": {
     "@kajai/db": "workspace:*",

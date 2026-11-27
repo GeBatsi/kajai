@@ -2,32 +2,37 @@
 import { signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { canAccessAdmin } from '@/lib/admin-permissions'
+import { canAccessRecipeBook, isRecipeBookPath } from '@/lib/recipe-book-navigation'
 
 interface HeaderProps {
-  onLoginClick: () => void,
-  onRegisterClick?:()=> void
+  onLoginClick: () => void
+  onRegisterClick?: () => void
 }
 
-export default function Header({
-  onLoginClick,
-  onRegisterClick,
-}: HeaderProps) {
-    const { data: session, status } = useSession();
-    const isLoading = status === 'loading'
-    const isLoggedIn = status === 'authenticated'
+export default function Header({ onLoginClick, onRegisterClick }: HeaderProps) {
+  const { data: session, status } = useSession()
+  const isLoading = status === 'loading'
+  const isLoggedIn = status === 'authenticated'
+  const pathname = usePathname()
+  const adminActive = pathname === '/admin' || pathname?.startsWith('/admin/')
+  const recipeBookActive = isRecipeBookPath(pathname)
+  const navigationClass = (active: boolean) =>
+    `rounded-full border px-3 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:px-5 ${active ? 'border-primary/40 bg-accent text-accent-foreground' : 'border-border text-foreground hover:bg-muted'}`
 
-    const firstName =
-        session?.user?.name?.trim() || 'név nélküli felhasználó'
+  const firstName = session?.user?.name?.trim() || 'név nélküli felhasználó'
 
-    // The NextAuth cookie belongs to the web origin; logout must work without the API.
-    const handleLogout = () => signOut({ callbackUrl: '/login' })
-
-
+  // The NextAuth cookie belongs to the web origin; logout must work without the API.
+  const handleLogout = () => signOut({ callbackUrl: '/login' })
 
   return (
     <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 font-body text-foreground sm:px-6">
-      <Link href="/" className="flex shrink-0 items-center gap-2 font-heading focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring" aria-label="KajAI főoldal">
+      <Link
+        href="/"
+        className="flex shrink-0 items-center gap-2 font-heading focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+        aria-label="KajAI főoldal"
+      >
         <span>KajAI</span>
         <Image src="/Kajai.webp" alt="Kajai logó" width={24} height={24} className="h-6 w-6" />
       </Link>
@@ -38,8 +43,28 @@ export default function Header({
         </span>
       )}
       <div className="flex flex-wrap gap-2">
-        {isLoggedIn && !!session?.user.id && !session.user.isBanned && ['USER','MODERATOR','ADMIN'].includes(session.user.role) && <nav aria-label="Javítások" className="flex flex-wrap items-center gap-3 text-sm text-primary"><Link href="/nutrition-corrections/new">Tápérték-javítás javaslata</Link><Link href="/nutrition-corrections/mine">Saját javaslataim</Link>{['MODERATOR','ADMIN'].includes(session.user.role)&&<Link href="/moderator/nutrition-corrections">Javaslatok moderálása</Link>}</nav>}
-        {isLoggedIn && canAccessAdmin(session?.user) && <Link href="/admin" className="rounded-full bg-accent px-3 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring sm:px-5">Admin Dashboard</Link>}
+        {isLoggedIn && canAccessRecipeBook(session?.user) && (
+          <nav aria-label="Fő navigáció" className="flex flex-wrap items-center gap-2">
+            {canAccessAdmin(session?.user) && (
+              <Link
+                href="/admin"
+                aria-current={adminActive ? 'location' : undefined}
+                className={navigationClass(!!adminActive)}
+              >
+                Admin Dashboard
+              </Link>
+            )}
+            <Link
+              href="/recipe-book"
+              aria-current={
+                recipeBookActive ? (pathname === '/recipe-book' ? 'page' : 'location') : undefined
+              }
+              className={navigationClass(recipeBookActive)}
+            >
+              Receptkönyv
+            </Link>
+          </nav>
+        )}
         {!isLoggedIn && (
           <button
             type="button"

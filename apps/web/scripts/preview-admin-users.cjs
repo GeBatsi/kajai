@@ -17,7 +17,7 @@ const port = Number(process.argv[2] || process.env.ADMIN_PREVIEW_PORT || 4177)
 const shims = {
   'next/link': `import React from 'react'; export default function Link({href,children,...props}) { return <a {...props} href={href} onClick={e=>{props.onClick?.(e);if(!e.defaultPrevented&&!e.ctrlKey&&!e.metaKey){e.preventDefault();history.pushState({},'',href);dispatchEvent(new PopStateEvent('popstate'))}}}>{children}</a> }`,
   'next/image': `import React from 'react';export default function Image(props){return <img {...props}/>}`,
-  'next/navigation': `const go=url=>{history.replaceState({},'',url);dispatchEvent(new PopStateEvent('popstate'))};export const useRouter=()=>({replace:go,push:go});`,
+  'next/navigation': `const go=url=>{history.replaceState({},'',url);dispatchEvent(new PopStateEvent('popstate'))};export const useRouter=()=>({replace:go,push:go});export const usePathname=()=>location.pathname;`,
   'next-auth/react': `import React,{createContext,useContext} from 'react';export const FixtureSession=createContext({});export const useSession=()=>useContext(FixtureSession);export const signOut=async()=>{};`,
 }
 const entry = `
@@ -32,6 +32,10 @@ import {AdminShell} from '@/components/admin/admin-shell';
 import {AdminUsersList} from '@/components/admin/admin-users-list';
 import {AdminUserDetail} from '@/components/admin/admin-user-detail';
 import {AdminUserCreate} from '@/components/admin/admin-user-create';
+import {RecipeBookDashboard} from '@/components/recipe-book/recipe-book-dashboard';
+import FoodForm from '@/components/foods/food-form';
+import FoodPicker from '@/components/foods/food-picker';
+import FoodEditor from '@/components/foods/food-editor';
 import {AppThemeToggle} from '@/components/theme/app-theme-toggle';
 import '@kajai/ui/tokens.css';
 let identity={id:'preview-admin',name:'Teszt Admin',email:'admin@example.test',role:'ADMIN',isBanned:false};
@@ -39,7 +43,8 @@ let count=0,report=()=>{},conflict=false;
 let rows=Array.from({length:62},(_,i)=>({id:i===0?'preview-admin':'user-'+i,email:i===0?'admin@example.test':'felhasznalo'+i+'@example.test',name:['Kiss Anna','Nagy Balázs','Tóth Dóra','Szabó Márton'][i%4],image:null,role:i===0?'ADMIN':i%5===0?'MODERATOR':'USER',isVerified:i%3!==0,bannedAt:i%7===0&&i!==0?'2026-11-18T12:00:00Z':null,banReason:i%7===0&&i!==0?'Ismétlődő szabálysértés':null,createdAt:'2026-11-18T12:00:00Z',updatedAt:'2026-11-18T12:00:00Z'}));
 const fail=(config,status,message)=>{throw new AxiosError(message,'ERR_BAD_RESPONSE',config,null,{status,data:{message},statusText:'Error',headers:{},config})};
 const summary=({bannedAt,banReason,...rest})=>rest;
-globalThis.fetch=async()=>new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
+const previewFood={id:'food',name:'Csirkemell',type:'BASIC',category:'Hús',nutrition:{per:100,unit:'g',energyKcal:180,protein:29,fat:5,carbs:0},allergens:{},imageUrl:null};
+globalThis.fetch=async url=>new Response(JSON.stringify(String(url).includes('/foods?')?[previewFood]:String(url).includes('/foods/food')?previewFood:{}),{status:200,headers:{'Content-Type':'application/json'}});
 apiClient.defaults.adapter=async config=>{
   report(++count);await new Promise(resolve=>setTimeout(resolve,160));
   if(identity.role!=='ADMIN'||identity.isBanned) return fail(config,403,'Nincs jogosultságod.');
@@ -68,9 +73,10 @@ function Preview(){
   const [pathname,setPath]=useState(location.pathname),[role,setRole]=useState('ADMIN'),[requests,setRequests]=useState(0);
   useEffect(()=>{report=setRequests;const listener=()=>setPath(location.pathname);addEventListener('popstate',listener);return()=>removeEventListener('popstate',listener)},[]);
   const detail=pathname.match(/^\\/admin\\/users\\/([^/]+)$/),child=pathname==='/admin/users/new'?<AdminUserCreate/>:detail?<AdminUserDetail id={decodeURIComponent(detail[1])}/>:<AdminUsersList/>;
+  const content=pathname==='/recipe-book'?<RecipeBookDashboard/>:pathname==='/moderator/foods/new'?<FoodForm apiBaseUrl="http://preview.invalid" backHref="/recipe-book" title="Alapanyag létrehozása"/>:pathname==='/moderator/foods/edit'?<FoodPicker apiBaseUrl="http://preview.invalid"/>:pathname==='/moderator/foods/food/edit'?<FoodEditor apiBaseUrl="http://preview.invalid" foodId="food"/>:<AdminShell>{child}</AdminShell>;
   return <ThemeProvider attribute="class" defaultTheme="light" forcedTheme={new URLSearchParams(location.search).get('theme')||undefined}><QueryClientProvider client={queryClient}><FixtureSession.Provider value={{data:{user:identity},status:'authenticated',update:async()=>({user:identity})}}>
     <div style={{padding:'12px 20px',background:'#18332d',color:'white',fontFamily:'sans-serif',fontSize:14,display:'flex',gap:16,flexWrap:'wrap',alignItems:'center'}}><strong>Elkülönített UI-próba · csak mintadatok</strong><label>Session: <select aria-label="Teszt session" value={role} onChange={e=>{const value=e.target.value;identity={...identity,role:value==='BANNED'?'ADMIN':value,isBanned:value==='BANNED'};setRole(value)}} style={{color:'black'}}>{['ADMIN','USER','MODERATOR','BANNED'].map(value=><option key={value}>{value}</option>)}</select></label><label><input type="checkbox" onChange={e=>{conflict=e.target.checked}}/> 409-es konfliktus szimulálása</label><span>Kérések: {requests}</span></div>
-    <AdminShell>{child}</AdminShell><AppThemeToggle className="fixed bottom-4 right-4 z-40"/>
+    {content}<AppThemeToggle className="fixed bottom-4 right-4 z-40"/>
   </FixtureSession.Provider></QueryClientProvider></ThemeProvider>;
 }
 createRoot(document.getElementById('root')).render(<Preview/>);
@@ -90,7 +96,7 @@ async function main() {
     const pathname = new URL(req.url, 'http://localhost').pathname
     if (pathname === '/__mobile') { const theme = new URL(req.url, 'http://localhost').searchParams.get('theme') === 'dark' ? 'dark' : 'light'; res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.end('<!doctype html><html lang="hu"><meta charset="utf-8"><title>KajAI · 390px mobil előnézet</title><body style="margin:0;background:#222;color:white;font:16px sans-serif;padding:16px"><p>390 × 844 · elkülönített mobilnézet</p><iframe title="KajAI mobilnézet" src="/admin/users?theme='+theme+'" style="width:390px;height:844px;border:0;border-radius:20px"></iframe></body></html>') }
     if (pathname === '/Kajai.webp') { res.setHeader('Content-Type', 'image/webp'); return res.end(fs.readFileSync(path.join(web, 'public/Kajai.webp'))) }
-    if (pathname.startsWith('/admin') || pathname === '/') { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.end(html) }
+    if (pathname.startsWith('/admin') || pathname.startsWith('/moderator/foods') || pathname === '/recipe-book' || pathname === '/') { res.setHeader('Content-Type', 'text/html; charset=utf-8'); return res.end(html) }
     const file = path.resolve(output, '.' + pathname)
     if (!file.startsWith(output + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.statusCode = 404; return res.end() }
     res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'font/woff2')

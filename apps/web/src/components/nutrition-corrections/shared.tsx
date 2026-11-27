@@ -69,14 +69,10 @@ export function CorrectionShell({
       <Header onLoginClick={() => {}} />
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 pb-24 sm:px-6">
         <nav
-          aria-label="Tápérték-javítás navigáció"
+          aria-label="Visszalépés"
           className="flex flex-wrap gap-4 text-sm text-primary"
         >
-          <Link href="/nutrition-corrections/new">Javítás javaslata</Link>
-          <Link href="/nutrition-corrections/mine">Saját javaslataim</Link>
-          {correctionAccess(s.data?.user, true) && (
-            <Link href="/moderator/nutrition-corrections">Javaslatok moderálása</Link>
-          )}
+          <Link href="/recipe-book" className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">← Vissza a Receptkönyvbe</Link>
         </nav>
         {s.allowed ? (
           <div key={s.actorId + ':' + s.data?.user.role}>{children}</div>
